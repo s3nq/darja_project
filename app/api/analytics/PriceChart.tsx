@@ -71,7 +71,7 @@ export function PriceChart() {
 		datasets: [
 			{
 				label: 'Средняя цена м²',
-				data: priceData,
+				data: data.data,
 				borderColor: 'rgb(59, 130, 246)',
 				backgroundColor: 'rgba(59, 130, 246, 0.5)',
 			},

@@ -1,5 +1,9 @@
-// app/page.tsx
 'use client'
+
+import { useQuery } from '@tanstack/react-query'
+import { Building2, LineChart, Plus, Search } from 'lucide-react'
+import Link from 'next/link'
+import { useState } from 'react'
 
 import { DistrictAnalytics } from '@/components/analytics/DistrictAnalytics'
 import { PriceChart } from '@/components/analytics/PriceChart'
@@ -13,73 +17,74 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import axios from 'axios'
-import { Building2, LineChart, Plus, Search } from 'lucide-react'
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
 
-const fetchProperties = async () => {
-	const response = await axios.get('/api/properties')
-	return response.data
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. Функции для запросов
+// ─────────────────────────────────────────────────────────────────────────────
+async function fetchProperties() {
+	const res = await fetch('/api/properties')
+	if (!res.ok) {
+		throw new Error('Ошибка при загрузке объектов')
+	}
+	return res.json()
 }
 
-const fetchPricePredictions = async () => {
-	const response = await axios.get('/api/predict') 
-	return response.data
+async function fetchPredictions() {
+	const res = await fetch('/api/predict')
+	if (!res.ok) {
+		throw new Error('Ошибка при загрузке прогноза цен')
+	}
+	return res.json()
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. Главная страница
+// ─────────────────────────────────────────────────────────────────────────────
 export default function Home() {
-	const [predictions, setPredictions] = useState<any[]>([])
-	const [isLoading, setIsLoading] = useState(true)
-	const [isError, setIsError] = useState(false)
+	// Список объектов
+	const {
+		data: propertiesData,
+		isLoading: loadingProperties,
+		isError: errorProperties,
+	} = useQuery({
+		queryKey: ['properties'],
+		queryFn: fetchProperties,
+	})
 
-	const [properties, setProperties] = useState<any[]>([])
-	const [loadingProperties, setLoadingProperties] = useState(true)
-	const [errorProperties, setErrorProperties] = useState(false)
+	// Прогноз цен
+	const {
+		data: predictionsData,
+		isLoading: loadingPredictions,
+		isError: errorPredictions,
+	} = useQuery({
+		queryKey: ['predictions'],
+		queryFn: fetchPredictions,
+	})
 
-	useEffect(() => {
-		const getPredictions = async () => {
-			try {
-				const data = await fetchPricePredictions()
-				setPredictions(data)
-			} catch {
-				setIsError(true)
-			} finally {
-				setIsLoading(false)
-			}
-		}
-
-		const getProperties = async () => {
-			try {
-				const data = await fetchProperties()
-				setProperties(data)
-			} catch {
-				setErrorProperties(true)
-			} finally {
-				setLoadingProperties(false)
-			}
-		}
-
-		getPredictions()
-		getProperties()
-	}, [])
+	// Если у тебя будет поиск, можешь управлять состоянием здесь
+	const [searchQuery, setSearchQuery] = useState('')
 
 	return (
 		<div className='flex min-h-screen w-full flex-col'>
+			{/* Шапка */}
 			<header className='sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6'>
 				<div className='flex items-center gap-2'>
 					<Building2 className='h-6 w-6' />
 					<span className='text-lg font-semibold'>Недвижимость Москвы</span>
 				</div>
 				<div className='ml-auto flex items-center gap-4'>
-					<form className='relative'>
+					{/* Поиск */}
+					<form onSubmit={e => e.preventDefault()} className='relative'>
 						<Search className='absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground' />
 						<Input
 							type='search'
 							placeholder='Поиск объектов...'
 							className='w-72 rounded-lg bg-background pl-8'
+							value={searchQuery}
+							onChange={e => setSearchQuery(e.target.value)}
 						/>
 					</form>
+
 					<Button asChild>
 						<Link href='/properties/add'>
 							<Plus className='mr-2 h-4 w-4' />
@@ -89,8 +94,11 @@ export default function Home() {
 				</div>
 			</header>
 
+			{/* Основная часть */}
 			<main className='flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8'>
+				{/* Карточки с быстр. статистикой */}
 				<div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
+					{/* Всего объектов */}
 					<Card>
 						<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
 							<CardTitle className='text-sm font-medium'>
@@ -99,11 +107,24 @@ export default function Home() {
 							<Building2 className='h-4 w-4 text-muted-foreground' />
 						</CardHeader>
 						<CardContent>
-							<div className='text-2xl font-bold'>{properties.length}</div>
-							<p className='text-xs text-muted-foreground'>Объектов в базе</p>
+							{loadingProperties ? (
+								<div>Загрузка...</div>
+							) : errorProperties ? (
+								<div>Ошибка загрузки</div>
+							) : (
+								<>
+									<div className='text-2xl font-bold'>
+										{propertiesData.length}
+									</div>
+									<p className='text-xs text-muted-foreground'>
+										Объектов в базе
+									</p>
+								</>
+							)}
 						</CardContent>
 					</Card>
 
+					{/* Активных объявлений (пример) */}
 					<Card>
 						<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
 							<CardTitle className='text-sm font-medium'>
@@ -119,6 +140,7 @@ export default function Home() {
 						</CardContent>
 					</Card>
 
+					{/* Средняя цена/м² (пример) */}
 					<Card>
 						<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
 							<CardTitle className='text-sm font-medium'>
@@ -134,6 +156,7 @@ export default function Home() {
 						</CardContent>
 					</Card>
 
+					{/* Продаж в этом месяце (пример) */}
 					<Card>
 						<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
 							<CardTitle className='text-sm font-medium'>
@@ -150,6 +173,7 @@ export default function Home() {
 					</Card>
 				</div>
 
+				{/* Вкладки */}
 				<Tabs defaultValue='properties'>
 					<TabsList>
 						<TabsTrigger value='properties'>Объекты</TabsTrigger>
@@ -157,6 +181,7 @@ export default function Home() {
 						<TabsTrigger value='predictions'>Прогноз цен</TabsTrigger>
 					</TabsList>
 
+					{/* Вкладка: объекты */}
 					<TabsContent value='properties' className='space-y-4'>
 						<Card>
 							<CardHeader>
@@ -170,31 +195,48 @@ export default function Home() {
 									<div>Загрузка...</div>
 								) : errorProperties ? (
 									<div>Ошибка при загрузке объектов.</div>
-								) : properties.length === 0 ? (
+								) : propertiesData.length === 0 ? (
 									<div>Объекты не найдены.</div>
 								) : (
 									<div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-										{properties.map((property, index) => (
-											<Card key={index} className='border shadow-sm'>
-												<CardHeader>
-													<CardTitle>{property.title || 'Объект'}</CardTitle>
-													<CardDescription>{property.address}</CardDescription>
-												</CardHeader>
-												<CardContent>
-													<p>Цена: {property.price} ₽</p>
-													<p>Площадь: {property.area} м²</p>
-													<p>Район: {property.district}</p>
-												</CardContent>
-											</Card>
-										))}
+										{propertiesData
+											.filter((property: any) => {
+												// примитивный поиск: по адресу / району
+												if (!searchQuery) return true
+												const lowerQuery = searchQuery.toLowerCase()
+												return (
+													property.address
+														?.toLowerCase()
+														.includes(lowerQuery) ||
+													property.district?.toLowerCase().includes(lowerQuery)
+												)
+											})
+											.map((property: any, index: number) => (
+												<Card key={index} className='border shadow-sm'>
+													<CardHeader>
+														<CardTitle>
+															{property.title || `Объект #${property.id}`}
+														</CardTitle>
+														<CardDescription>
+															{property.address}
+														</CardDescription>
+													</CardHeader>
+													<CardContent>
+														<p>Цена: {property.price} ₽</p>
+														<p>Площадь: {property.area} м²</p>
+														<p>Район: {property.district}</p>
+													</CardContent>
+												</Card>
+											))}
 									</div>
 								)}
 							</CardContent>
 						</Card>
 					</TabsContent>
 
+					{/* Вкладка: аналитика рынка */}
 					<TabsContent value='analytics' className='space-y-4'>
-						<div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
+						<div className=' gap-4 md:grid-cols-2 lg:grid-cols-3'>
 							<Card className='col-span-2'>
 								<CardHeader>
 									<CardTitle>Динамика цен</CardTitle>
@@ -208,10 +250,6 @@ export default function Home() {
 							</Card>
 
 							<Card>
-								<CardHeader>
-									<CardTitle>Анализ по районам</CardTitle>
-									<CardDescription>Спрос по районам</CardDescription>
-								</CardHeader>
 								<CardContent>
 									<DistrictAnalytics />
 								</CardContent>
@@ -219,6 +257,7 @@ export default function Home() {
 						</div>
 					</TabsContent>
 
+					{/* Вкладка: прогноз цен */}
 					<TabsContent value='predictions' className='space-y-4'>
 						<Card>
 							<CardHeader>
@@ -228,26 +267,32 @@ export default function Home() {
 								</CardDescription>
 							</CardHeader>
 							<CardContent>
-								{isLoading ? (
+								{loadingPredictions ? (
 									<div>Загрузка...</div>
-								) : isError ? (
+								) : errorPredictions ? (
 									<div>Ошибка при загрузке данных.</div>
+								) : !predictionsData || predictionsData.length === 0 ? (
+									<div>Нет данных по прогнозам</div>
 								) : (
 									<div className='rounded-lg border'>
 										<div className='flex flex-col'>
-											{predictions.map(prediction => (
+											{predictionsData.map((prediction: any) => (
 												<div
 													key={prediction.district}
-													className='flex items-center justify-between border-b px-4 py-3'
+													className='flex items-center justify-between border-b px-4 py-3 '
+													style={{ display: 'flex', alignItems: 'center' }}
 												>
-													<div>{prediction.district}</div>
-													<div>{prediction.currentPrice} ₽</div>
+													<div style={{ flex: 6 }}>{prediction.district}</div>
+													<div style={{ flex: 6 }}>
+														{prediction.current_price} ₽
+													</div>
 													<div
 														className={
 															prediction.change > 0
 																? 'text-green-600'
 																: 'text-red-600'
 														}
+														style={{ flex: 1 }}
 													>
 														{prediction.change}%
 													</div>

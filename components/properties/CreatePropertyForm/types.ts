@@ -1,22 +1,19 @@
-export interface Property {
-	id: string
-	createdAt: Date
+export interface PropertyFormData {
 	district: string
 	address: string
-	metroDistance: number
-	rooms: number
+	metroDistance: string
+	rooms: string
 	renovation: string
-	kitchenArea: number
+	kitchenArea: string
 	balconyType: string
 	buildingType: string
-	elevatorCount: number
+	elevatorCount: string
 	hasFreightElevator: boolean
-	ceilingHeight: number
+	ceilingHeight: string
 	parkingType: string
-	area: number
-	floor: number
-	totalFloors: number
-	yearBuilt: number
+	area: string
+	floor: string
+	totalFloors: string
+	yearBuilt: string
 	description?: string
-	price: number
 }

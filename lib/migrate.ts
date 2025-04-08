@@ -2,14 +2,16 @@ import fs from 'fs'
 import path from 'path'
 import { query } from './database'
 
-const runMigration = async () => {
-	const migrationFile = path.join(
-		__dirname,
-		'migrations/001_create_properties.sql'
-	)
-	const sql = fs.readFileSync(migrationFile, 'utf8')
-	await query(sql)
-	console.log('Migration applied successfully!')
+const runMigrations = async () => {
+	const dir = path.join(__dirname, 'migrations')
+	const files = fs.readdirSync(dir).sort()
+
+	for (const file of files) {
+		const sql = fs.readFileSync(path.join(dir, file), 'utf8')
+		console.log(`⏳ Running ${file}...`)
+		await query(sql)
+	}
+	console.log('✅ All migrations applied!')
 }
 
-runMigration().catch(console.error)
+runMigrations().catch(console.error)

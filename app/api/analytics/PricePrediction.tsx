@@ -51,7 +51,7 @@ export function PricePrediction() {
 		datasets: [
 			{
 				label: 'Средняя цена',
-				data: prices,
+				data: data.data,
 				borderColor: 'rgb(59, 130, 246)',
 				backgroundColor: 'rgba(59, 130, 246, 0.5)',
 			},
