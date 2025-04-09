@@ -1,3 +1,4 @@
+//C:\Users\tawer\Desktop\darja_project\lib\database.ts
 import dotenv from 'dotenv'
 dotenv.config()
 

@@ -1,3 +1,4 @@
+//C:\Users\tawer\Desktop\darja_project\components\analytics\DistrictAnalytics.tsx
 'use client'
 
 import { useQuery } from '@tanstack/react-query'

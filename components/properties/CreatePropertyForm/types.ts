@@ -1,4 +1,7 @@
 export interface PropertyFormData {
+	price(price: any): unknown
+	condition: string
+	total_floors: string
 	district: string
 	address: string
 	metroDistance: string
@@ -16,4 +19,5 @@ export interface PropertyFormData {
 	totalFloors: string
 	yearBuilt: string
 	description?: string
+	purpose?: 'buy' | 'rent'
 }

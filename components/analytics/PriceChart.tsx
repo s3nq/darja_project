@@ -23,29 +23,27 @@ ChartJS.register(
 	Legend
 )
 
-async function fetchPriceData() {
-	const res = await fetch('/api/analytics')
-	if (!res.ok) throw new Error('Ошибка при загрузке данных')
-	return res.json()
-}
-
 export function PriceChart() {
-	const { data, isLoading, isError } = useQuery({
+	const { data } = useQuery({
 		queryKey: ['priceData'],
-		queryFn: fetchPriceData,
+		queryFn: async () => {
+			const res = await fetch('/api/analytics/comparison')
+			if (!res.ok) throw new Error('Ошибка при загрузке данных')
+			return res.json()
+		},
 	})
 
-	if (isLoading) return <div>Загрузка графика...</div>
-	if (isError) return <div>Ошибка при загрузке графика</div>
+	if (!Array.isArray(data)) return null
 
 	const chartData = {
-		labels: data.labels,
+		labels: data.map((d: any) => d.district),
 		datasets: [
 			{
 				label: 'Средняя цена м²',
-				data: data.data,
+				data: data.map((d: any) => d.avg_price),
 				borderColor: 'rgb(59, 130, 246)',
 				backgroundColor: 'rgba(59, 130, 246, 0.5)',
+				tension: 0.3,
 			},
 		],
 	}
@@ -53,21 +51,17 @@ export function PriceChart() {
 	const options = {
 		responsive: true,
 		plugins: {
-			legend: {
-				position: 'top' as const,
-			},
+			legend: { position: 'top' as const },
 			title: {
 				display: true,
-				text: 'Динамика цен',
+				text: 'Сравнение средней цены по районам',
 			},
 		},
 		scales: {
 			y: {
 				beginAtZero: false,
 				ticks: {
-					callback: function (value: number) {
-						return value.toLocaleString() + ' ₽'
-					},
+					callback: (value: number) => value.toLocaleString() + ' ₽',
 				},
 			},
 		},

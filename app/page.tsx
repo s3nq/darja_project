@@ -1,12 +1,13 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
-import { Building2, LineChart, Plus, Search } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Building2, CheckCircle, Plus, Search, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 
-import { DistrictAnalytics } from '@/components/analytics/DistrictAnalytics'
+import { AdvancedPredictionForm } from '@/components/analytics/AdvancedPredictionForm'
 import { PriceChart } from '@/components/analytics/PriceChart'
+import { PropertyModal } from '@/components/properties/PropertyModal'
 import { Button } from '@/components/ui/button'
 import {
 	Card,
@@ -17,63 +18,80 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Property } from '@/types/property'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 1. Функции для запросов
-// ─────────────────────────────────────────────────────────────────────────────
+// Запрос объектов
 async function fetchProperties() {
 	const res = await fetch('/api/properties')
-	if (!res.ok) {
-		throw new Error('Ошибка при загрузке объектов')
-	}
+	if (!res.ok) throw new Error('Ошибка при загрузке объектов')
 	return res.json()
 }
 
-async function fetchPredictions() {
-	const res = await fetch('/api/predict')
-	if (!res.ok) {
-		throw new Error('Ошибка при загрузке прогноза цен')
-	}
+// Обновление статуса
+async function updatePropertyStatus({
+	id,
+	status,
+}: {
+	id: string
+	status: string
+}) {
+	const res = await fetch(`/api/properties/${id}`, {
+		method: 'PATCH',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ status }),
+	})
+	if (!res.ok) throw new Error('Ошибка обновления статуса')
 	return res.json()
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. Главная страница
-// ─────────────────────────────────────────────────────────────────────────────
 export default function Home() {
-	// Список объектов
-	const {
-		data: propertiesData,
-		isLoading: loadingProperties,
-		isError: errorProperties,
-	} = useQuery({
-		queryKey: ['properties'],
-		queryFn: fetchProperties,
-	})
-
-	// Прогноз цен
-	const {
-		data: predictionsData,
-		isLoading: loadingPredictions,
-		isError: errorPredictions,
-	} = useQuery({
-		queryKey: ['predictions'],
-		queryFn: fetchPredictions,
-	})
-
-	// Если у тебя будет поиск, можешь управлять состоянием здесь
+	const queryClient = useQueryClient()
 	const [searchQuery, setSearchQuery] = useState('')
+	const [selectedProperty, setSelectedProperty] = useState<Property | null>(
+		null
+	)
+	const [isModalOpen, setIsModalOpen] = useState(false)
+
+	const openModal = (property: Property) => {
+		setSelectedProperty(property)
+		setIsModalOpen(true)
+	}
+
+	const {
+		data: properties,
+		isLoading,
+		isError,
+	} = useQuery({ queryKey: ['properties'], queryFn: fetchProperties })
+
+	const mutation = useMutation({
+		mutationFn: updatePropertyStatus,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['properties'] })
+		},
+	})
+
+	const filtered = properties?.filter((p: Property) => {
+		if (!searchQuery) return true
+		const q = searchQuery.toLowerCase()
+		return (
+			p.address?.toLowerCase().includes(q) ||
+			p.district?.toLowerCase().includes(q)
+		)
+	})
+
+	const inProgress = filtered?.filter((p: Property) => p.status === 'в продаже')
+	const notInProgress = filtered?.filter(
+		(p: Property) => p.status !== 'в продаже'
+	)
 
 	return (
 		<div className='flex min-h-screen w-full flex-col'>
-			{/* Шапка */}
 			<header className='sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6'>
 				<div className='flex items-center gap-2'>
 					<Building2 className='h-6 w-6' />
 					<span className='text-lg font-semibold'>Недвижимость Москвы</span>
 				</div>
 				<div className='ml-auto flex items-center gap-4'>
-					{/* Поиск */}
 					<form onSubmit={e => e.preventDefault()} className='relative'>
 						<Search className='absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground' />
 						<Input
@@ -84,7 +102,6 @@ export default function Home() {
 							onChange={e => setSearchQuery(e.target.value)}
 						/>
 					</form>
-
 					<Button asChild>
 						<Link href='/properties/add'>
 							<Plus className='mr-2 h-4 w-4' />
@@ -94,217 +111,128 @@ export default function Home() {
 				</div>
 			</header>
 
-			{/* Основная часть */}
 			<main className='flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8'>
-				{/* Карточки с быстр. статистикой */}
-				<div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
-					{/* Всего объектов */}
-					<Card>
-						<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-							<CardTitle className='text-sm font-medium'>
-								Всего объектов
-							</CardTitle>
-							<Building2 className='h-4 w-4 text-muted-foreground' />
-						</CardHeader>
-						<CardContent>
-							{loadingProperties ? (
-								<div>Загрузка...</div>
-							) : errorProperties ? (
-								<div>Ошибка загрузки</div>
-							) : (
-								<>
-									<div className='text-2xl font-bold'>
-										{propertiesData.length}
-									</div>
-									<p className='text-xs text-muted-foreground'>
-										Объектов в базе
-									</p>
-								</>
-							)}
-						</CardContent>
-					</Card>
-
-					{/* Активных объявлений (пример) */}
-					<Card>
-						<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-							<CardTitle className='text-sm font-medium'>
-								Активных объявлений
-							</CardTitle>
-							<Building2 className='h-4 w-4 text-muted-foreground' />
-						</CardHeader>
-						<CardContent>
-							<div className='text-2xl font-bold'>324</div>
-							<p className='text-xs text-muted-foreground'>
-								+12 за последний месяц
-							</p>
-						</CardContent>
-					</Card>
-
-					{/* Средняя цена/м² (пример) */}
-					<Card>
-						<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-							<CardTitle className='text-sm font-medium'>
-								Средняя цена/м²
-							</CardTitle>
-							<LineChart className='h-4 w-4 text-muted-foreground' />
-						</CardHeader>
-						<CardContent>
-							<div className='text-2xl font-bold'>185 000 ₽</div>
-							<p className='text-xs text-muted-foreground'>
-								+2.5% за последний месяц
-							</p>
-						</CardContent>
-					</Card>
-
-					{/* Продаж в этом месяце (пример) */}
-					<Card>
-						<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-							<CardTitle className='text-sm font-medium'>
-								Продаж в этом месяце
-							</CardTitle>
-							<LineChart className='h-4 w-4 text-muted-foreground' />
-						</CardHeader>
-						<CardContent>
-							<div className='text-2xl font-bold'>42</div>
-							<p className='text-xs text-muted-foreground'>
-								+8% по сравнению с прошлым месяцем
-							</p>
-						</CardContent>
-					</Card>
-				</div>
-
-				{/* Вкладки */}
 				<Tabs defaultValue='properties'>
 					<TabsList>
 						<TabsTrigger value='properties'>Объекты</TabsTrigger>
-						<TabsTrigger value='analytics'>Аналитика рынка</TabsTrigger>
-						<TabsTrigger value='predictions'>Прогноз цен</TabsTrigger>
+						<TabsTrigger value='analytics'>Аналитика</TabsTrigger>
+						<TabsTrigger value='ai-predictions'>Прогноз</TabsTrigger>
 					</TabsList>
 
-					{/* Вкладка: объекты */}
-					<TabsContent value='properties' className='space-y-4'>
+					<TabsContent value='properties' className='space-y-6'>
 						<Card>
 							<CardHeader>
-								<CardTitle>Список объектов</CardTitle>
-								<CardDescription>
-									Актуальные предложения недвижимости
-								</CardDescription>
+								<CardTitle>Объекты в работе</CardTitle>
 							</CardHeader>
-							<CardContent>
-								{loadingProperties ? (
-									<div>Загрузка...</div>
-								) : errorProperties ? (
-									<div>Ошибка при загрузке объектов.</div>
-								) : propertiesData.length === 0 ? (
-									<div>Объекты не найдены.</div>
-								) : (
-									<div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-										{propertiesData
-											.filter((property: any) => {
-												// примитивный поиск: по адресу / району
-												if (!searchQuery) return true
-												const lowerQuery = searchQuery.toLowerCase()
-												return (
-													property.address
-														?.toLowerCase()
-														.includes(lowerQuery) ||
-													property.district?.toLowerCase().includes(lowerQuery)
-												)
-											})
-											.map((property: any, index: number) => (
-												<Card key={index} className='border shadow-sm'>
-													<CardHeader>
-														<CardTitle>
-															{property.title || `Объект #${property.id}`}
-														</CardTitle>
-														<CardDescription>
-															{property.address}
-														</CardDescription>
-													</CardHeader>
-													<CardContent>
-														<p>Цена: {property.price} ₽</p>
-														<p>Площадь: {property.area} м²</p>
-														<p>Район: {property.district}</p>
-													</CardContent>
-												</Card>
-											))}
-									</div>
-								)}
+							<CardContent className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
+								{inProgress?.map((property: Property) => (
+									<Card
+										key={property.id}
+										className='bg-green-50 border cursor-pointer'
+										onClick={() => openModal(property)}
+									>
+										<CardHeader>
+											<CardTitle className='flex items-center gap-2'>
+												<CheckCircle className='text-green-600 w-5 h-5' />
+												{property.address}
+											</CardTitle>
+											<CardDescription>{property.district}</CardDescription>
+										</CardHeader>
+										<CardContent className='space-y-1'>
+											<p>Цена: {property.price} ₽</p>
+											<p>Площадь: {property.area} м²</p>
+											<Button
+												variant='destructive'
+												size='sm'
+												onClick={e => {
+													e.stopPropagation()
+													mutation.mutate({
+														id: property.id,
+														status: 'не указано',
+													})
+												}}
+											>
+												Убрать из работы
+											</Button>
+										</CardContent>
+									</Card>
+								))}
+							</CardContent>
+						</Card>
+
+						<Card>
+							<CardHeader>
+								<CardTitle>Архив объектов</CardTitle>
+							</CardHeader>
+							<CardContent className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
+								{notInProgress?.map((property: Property) => (
+									<Card
+										key={property.id}
+										className='bg-gray-50 border cursor-pointer'
+										onClick={() => openModal(property)}
+									>
+										<CardHeader>
+											<CardTitle className='flex items-center gap-2'>
+												<XCircle className='text-gray-400 w-5 h-5' />
+												{property.address}
+											</CardTitle>
+											<CardDescription>{property.district}</CardDescription>
+										</CardHeader>
+										<CardContent className='space-y-1'>
+											<p>Цена: {property.price} ₽</p>
+											<p>Площадь: {property.area} м²</p>
+											<Button
+												variant='outline'
+												size='sm'
+												onClick={e => {
+													e.stopPropagation()
+													mutation.mutate({
+														id: property.id,
+														status: 'в продаже',
+													})
+												}}
+											>
+												Взять в работу
+											</Button>
+										</CardContent>
+									</Card>
+								))}
 							</CardContent>
 						</Card>
 					</TabsContent>
 
-					{/* Вкладка: аналитика рынка */}
-					<TabsContent value='analytics' className='space-y-4'>
-						<div className=' gap-4 md:grid-cols-2 lg:grid-cols-3'>
-							<Card className='col-span-2'>
-								<CardHeader>
-									<CardTitle>Динамика цен</CardTitle>
-									<CardDescription>
-										Средняя цена за квадратный метр по районам
-									</CardDescription>
-								</CardHeader>
-								<CardContent className='pl-2'>
-									<PriceChart />
-								</CardContent>
-							</Card>
-
-							<Card>
-								<CardContent>
-									<DistrictAnalytics />
-								</CardContent>
-							</Card>
-						</div>
+					<TabsContent value='analytics'>
+						<Card className='col-span-2'>
+							<CardHeader>
+								<CardTitle>Динамика цен</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<PriceChart />
+							</CardContent>
+						</Card>
 					</TabsContent>
 
-					{/* Вкладка: прогноз цен */}
-					<TabsContent value='predictions' className='space-y-4'>
+					<TabsContent value='ai-predictions'>
 						<Card>
 							<CardHeader>
-								<CardTitle>Прогноз цен</CardTitle>
+								<CardTitle>Прогноз на основе трендов</CardTitle>
 								<CardDescription>
-									Прогнозируемое изменение цен на ближайшие 6 месяцев
+									Прогноз стоимости с учётом динамики района и корректировкой
+									модели
 								</CardDescription>
 							</CardHeader>
 							<CardContent>
-								{loadingPredictions ? (
-									<div>Загрузка...</div>
-								) : errorPredictions ? (
-									<div>Ошибка при загрузке данных.</div>
-								) : !predictionsData || predictionsData.length === 0 ? (
-									<div>Нет данных по прогнозам</div>
-								) : (
-									<div className='rounded-lg border'>
-										<div className='flex flex-col'>
-											{predictionsData.map((prediction: any) => (
-												<div
-													key={prediction.district}
-													className='flex items-center justify-between border-b px-4 py-3 '
-													style={{ display: 'flex', alignItems: 'center' }}
-												>
-													<div style={{ flex: 6 }}>{prediction.district}</div>
-													<div style={{ flex: 6 }}>
-														{prediction.current_price} ₽
-													</div>
-													<div
-														className={
-															prediction.change > 0
-																? 'text-green-600'
-																: 'text-red-600'
-														}
-														style={{ flex: 1 }}
-													>
-														{prediction.change}%
-													</div>
-												</div>
-											))}
-										</div>
-									</div>
-								)}
+								<AdvancedPredictionForm />
 							</CardContent>
 						</Card>
 					</TabsContent>
 				</Tabs>
+
+				<PropertyModal
+					property={selectedProperty}
+					open={isModalOpen}
+					onOpenChange={setIsModalOpen}
+				/>
 			</main>
 		</div>
 	)

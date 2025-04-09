@@ -17,6 +17,7 @@ export type PropertyFormData = {
 	totalFloors: string
 	yearBuilt: string
 	description: string
+	purpose: 'buy' | 'rent'
 }
 
 export type PriceDetails = {
@@ -35,9 +36,19 @@ export type PriceDetails = {
 	ceilingHeightCoefficient: number
 	parkingCoefficient: number
 	secondaryFactorsCoefficient: number
+	purpose: 'buy' | 'rent'
 }
 
 export interface Property {
+	condition: string
+	building_type: string
+	year_built: string
+	elevator_count: string
+	ceiling_height: string
+	parking_type: string
+	total_floors: string
+	balcony_type: string
+	status: string
 	id: string
 	createdAt: Date
 	district: string
@@ -58,4 +69,5 @@ export interface Property {
 	yearBuilt: number
 	description?: string
 	price: number
+	purpose: 'buy' | 'rent'
 }

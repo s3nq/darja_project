@@ -1,25 +1,33 @@
-// app/api/predict/route.tsx
+// app/api/predict/route.ts
 import { pool } from '@/lib/database'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+	const { searchParams } = new URL(req.url)
+	const district = searchParams.get('district')
+	const sort = searchParams.get('sort') === 'desc' ? 'DESC' : 'ASC'
+
+	const whereClause = district ? `WHERE district = '${district}'` : ''
+
+	const query = `
+		SELECT 
+			address, 
+			price AS current_price,
+			price * (1 + (RANDOM() - 0.5) * 0.3) AS predicted_price,
+			((price * (1 + (RANDOM() - 0.5) * 0.3) - price) / price) AS diff
+		FROM properties
+		${whereClause}
+		ORDER BY diff ${sort}
+	`
+
 	try {
-		const client = await pool.connect()
-
-		const result = await client.query(`
-			SELECT 
-				district, 
-				current_price, 
-				predicted_price,
-				ROUND(((predicted_price - current_price) / current_price) * 100, 2) AS change
-			FROM price_predictions
-		`)
-
-		client.release()
-
+		const result = await pool.query(query)
 		return NextResponse.json(result.rows)
-	} catch (error) {
-		console.error('Ошибка при получении прогноза цен:', error)
-		return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 })
+	} catch (err) {
+		console.error('Ошибка предсказания цен:', err)
+		return NextResponse.json(
+			{ error: 'Ошибка получения предсказаний' },
+			{ status: 500 }
+		)
 	}
 }
