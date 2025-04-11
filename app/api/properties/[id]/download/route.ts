@@ -1,37 +1,26 @@
 import { readFileSync } from 'fs'
 import { NextRequest, NextResponse } from 'next/server'
 import { join } from 'path'
-import { encodeURIComponent } from 'querystring'
 
 export async function GET(
-	req: NextRequest,
+	request: NextRequest,
 	{ params }: { params: { id: string } }
 ) {
-	const { searchParams } = new URL(req.url)
-	const type = searchParams.get('type')
-
-	if (!type) {
-		return NextResponse.json({ error: 'No type specified' }, { status: 400 })
-	}
+	const id = params.id
+	const type = decodeURIComponent(
+		request.nextUrl.searchParams.get('type') || ''
+	)
 
 	try {
-		const filePath = join(
-			process.cwd(),
-			'public',
-			'uploads',
-			params.id,
-			`${type}.pdf`
-		)
+		const filePath = join(process.cwd(), 'public', 'uploads', id, `${type}.pdf`)
 
 		const fileBuffer = readFileSync(filePath)
-
-		// Кодируем имя файла
-		const encodedName = encodeURIComponent(`${type}.pdf`)
-
 		return new NextResponse(fileBuffer, {
 			headers: {
 				'Content-Type': 'application/pdf',
-				'Content-Disposition': `attachment; filename*=UTF-8''${encodedName}`,
+				'Content-Disposition': `attachment; filename="${encodeURIComponent(
+					`${type}.pdf`
+				)}"`,
 			},
 		})
 	} catch (error) {
