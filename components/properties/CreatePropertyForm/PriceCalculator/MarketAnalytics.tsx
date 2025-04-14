@@ -1,4 +1,3 @@
-// components/analytics/MarketAnalytics.tsx
 'use client'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -28,22 +27,34 @@ ChartJS.register(
 	Legend
 )
 
-export function MarketAnalytics() {
-	const [district, setDistrict] = useState<string>('ЦАО')
+interface MarketAnalyticsProps {
+	district: string
+	pricePerM2: number
+	purpose?: 'buy' | 'rent'
+}
+
+export function MarketAnalytics({
+	district: initialDistrict,
+	pricePerM2,
+	purpose = 'buy',
+}: MarketAnalyticsProps) {
+	const [district, setDistrict] = useState(initialDistrict)
 
 	const { data: comparisonData } = useQuery({
-		queryKey: ['district-comparison'],
+		queryKey: ['district-comparison', purpose],
 		queryFn: async () => {
-			const res = await fetch('/api/analytics/comparison')
+			const res = await fetch(`/api/analytics/comparison?purpose=${purpose}`)
 			if (!res.ok) throw new Error('Ошибка сравнения')
 			return res.json() as Promise<{ district: string; avg_price: number }[]>
 		},
 	})
 
 	const { data: historyData } = useQuery({
-		queryKey: ['district-history', district],
+		queryKey: ['district-history', district, purpose],
 		queryFn: async () => {
-			const res = await fetch(`/api/analytics/history?district=${district}`)
+			const res = await fetch(
+				`/api/analytics/history?district=${district}&purpose=${purpose}`
+			)
 			if (!res.ok) throw new Error('Ошибка истории')
 			return res.json() as Promise<{ month: string; avg_price: number }[]>
 		},
@@ -66,7 +77,10 @@ export function MarketAnalytics() {
 								labels: comparisonData.map(d => d.district),
 								datasets: [
 									{
-										label: 'Средняя цена м²',
+										label:
+											purpose === 'rent'
+												? 'Средняя аренда м²'
+												: 'Средняя цена м²',
 										data: comparisonData.map(d => d.avg_price),
 										backgroundColor: 'rgba(59, 130, 246, 0.5)',
 										borderRadius: 4,
@@ -77,7 +91,13 @@ export function MarketAnalytics() {
 								responsive: true,
 								plugins: {
 									legend: { display: false },
-									title: { display: true, text: 'Сравнение по районам' },
+									title: {
+										display: true,
+										text:
+											purpose === 'rent'
+												? 'Сравнение аренды по районам'
+												: 'Сравнение цен по районам',
+									},
 								},
 								scales: {
 									y: {
@@ -107,8 +127,6 @@ export function MarketAnalytics() {
 							<option>САО</option>
 							<option>ЮЗАО</option>
 							<option>ЗАО</option>
-							<option>Арбат</option>
-							<option>Таганский</option>
 							<option>ВАО</option>
 							<option>ЮАО</option>
 						</select>
@@ -120,7 +138,7 @@ export function MarketAnalytics() {
 								labels: historyData.map(p => p.month),
 								datasets: [
 									{
-										label: 'Средняя цена м²',
+										label: purpose === 'rent' ? 'Аренда м²' : 'Цена м²',
 										data: historyData.map(p => p.avg_price),
 										borderColor: 'rgb(59, 130, 246)',
 										backgroundColor: 'rgba(59, 130, 246, 0.5)',
@@ -134,7 +152,9 @@ export function MarketAnalytics() {
 									legend: { display: false },
 									title: {
 										display: true,
-										text: `Динамика цен — ${district}`,
+										text: `${
+											purpose === 'rent' ? 'Аренда' : 'Цены'
+										} — ${district}`,
 									},
 								},
 								scales: {

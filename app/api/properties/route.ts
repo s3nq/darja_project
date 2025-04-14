@@ -1,39 +1,21 @@
+// app/api/properties/route.ts
+
 import { pool } from '@/lib/database'
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET() {
-	try {
-		const result = await pool.query(
-			'SELECT * FROM properties ORDER BY created_at DESC'
-		)
-		return NextResponse.json(result.rows)
-	} catch (error) {
-		console.error('Ошибка при получении данных:', error)
-		return NextResponse.json(
-			{ error: 'Ошибка при получении данных' },
-			{ status: 500 }
-		)
-	}
-}
-
-export async function PATCH(req: NextRequest) {
-	try {
-		const { id, status } = await req.json()
-
-		const result = await pool.query(
-			`UPDATE properties SET status = $1 WHERE id = $2 RETURNING *`,
-			[status, id]
-		)
-
-		if (result.rowCount === 0) {
-			return NextResponse.json({ error: 'Объект не найден' }, { status: 404 })
-		}
-
-		return NextResponse.json(result.rows[0])
-	} catch (error) {
-		console.error('Ошибка при обновлении статуса:', error)
-		return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 })
-	}
+// Сопоставление полных названий районов с сокращениями
+const districtMap: Record<string, string> = {
+	'Центральный район': 'ЦАО',
+	'Северный район': 'САО',
+	'Южный район': 'ЮАО',
+	'Западный район': 'ЗАО',
+	'Юго-Западный район': 'ЮЗАО',
+	'Восточный район': 'ВАО',
+	'Северо-Восточный район': 'СВАО',
+	'Юго-Восточный район': 'ЮВАО',
+	'Северо-Западный район': 'СЗАО',
+	Таганский: 'ЦАО',
+	Арбат: 'ЦАО',
 }
 
 export async function POST(req: NextRequest) {
@@ -62,7 +44,15 @@ export async function POST(req: NextRequest) {
 			yearBuilt,
 			description,
 			purpose,
+			season,
+			inflation_rate,
+			documents,
 		} = data
+
+		// Перевод полного названия района в сокращённое
+		const shortDistrict = districtMap[district] || district
+
+		const calculatedPricePerM2 = area && price ? Math.round(price / area) : null
 
 		const result = await pool.query(
 			`
@@ -71,20 +61,20 @@ export async function POST(req: NextRequest) {
         metro_distance, rooms, renovation, kitchen_area,
         balcony_type, building_type, elevator_count, has_freight_elevator,
         ceiling_height, parking_type, floor, total_floors,
-        year_built, description, purpose
+        year_built, description, purpose, season, inflation_rate, documents, price_per_m2
       )
       VALUES (
         $1, $2, $3, $4, $5, $6,
         $7, $8, $9, $10,
         $11, $12, $13, $14,
         $15, $16, $17, $18,
-        $19, $20, $21
+        $19, $20, $21, $22, $23, $24, $25
       )
       RETURNING *
     `,
 			[
 				address,
-				district,
+				shortDistrict,
 				area,
 				Math.round(price),
 				condition,
@@ -104,15 +94,32 @@ export async function POST(req: NextRequest) {
 				yearBuilt,
 				description,
 				purpose,
+				season,
+				inflation_rate,
+				documents,
+				calculatedPricePerM2,
 			]
 		)
 
-		// Возвращаем весь объект
 		return NextResponse.json(result.rows[0])
 	} catch (error) {
 		console.error('Ошибка при сохранении объекта:', error)
 		return NextResponse.json(
 			{ error: 'Ошибка при сохранении объекта' },
+			{ status: 500 }
+		)
+	}
+}
+export async function GET() {
+	try {
+		const result = await pool.query(
+			'SELECT * FROM properties ORDER BY created_at DESC'
+		)
+		return NextResponse.json(result.rows)
+	} catch (error) {
+		console.error('Ошибка при получении объектов:', error)
+		return NextResponse.json(
+			{ error: 'Ошибка при получении объектов' },
 			{ status: 500 }
 		)
 	}

@@ -30,8 +30,6 @@ export function PredictionForm() {
 					<option value='ЮЗАО'>ЮЗАО</option>
 					<option value='ЗАО'>ЗАО</option>
 					<option value='ЦАО'>ЦАО</option>
-					<option value='Таганский'>Таганский</option>
-					<option value='Арбат'>Арбат</option>
 					<option value='ВАО'>ВАО</option>
 					<option value='ЮАО'>ЮАО</option>
 				</select>

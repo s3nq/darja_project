@@ -2,6 +2,7 @@
 export type PropertyFormData = {
 	district: string
 	address: string
+	price_per_m2?: number
 	metroDistance: string
 	rooms: string
 	renovation: string
@@ -22,6 +23,7 @@ export type PropertyFormData = {
 
 export type PriceDetails = {
 	basePrice: number
+	price_per_m2?: number
 	totalArea: number
 	pricePerSquareMeter: number
 	districtCoefficient: number
@@ -40,6 +42,8 @@ export type PriceDetails = {
 }
 
 export interface Property {
+	calculatedPricePerM2: any
+	price_per_m2?: number
 	condition: string
 	building_type: string
 	year_built: string

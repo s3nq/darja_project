@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Calculator, Check } from 'lucide-react'
 
 interface CalculatorCardProps {
-	calculatedPrice: number | null
+	calculatedPrice?: number | null
 	calculationSuccess: boolean
 	onCalculate: () => void
 }

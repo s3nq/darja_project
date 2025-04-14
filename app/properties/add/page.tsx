@@ -40,6 +40,8 @@ export default function AddPropertyPage() {
 		yearBuilt: new Date().getFullYear().toString(),
 		description: '',
 		purpose: 'buy',
+		condition: 'Новый',
+		price: '123',
 	})
 
 	const [priceDetails, setPriceDetails] = useState<PriceDetailsType | null>(
@@ -78,54 +80,88 @@ export default function AddPropertyPage() {
 
 			const getCoef = (v: number) => v || 1
 
-			const totalCoef =
-				getDistrictCoefficient(formData.district) *
-				getMetroCoefficient(parseInt(formData.metroDistance)) *
-				getRoomsCoefficient(formData.rooms) *
-				getRenovationCoefficient(formData.renovation) *
-				getBuildingTypeCoefficient(formData.buildingType) *
-				getElevatorCoefficient(
-					parseInt(formData.elevatorCount),
-					formData.hasFreightElevator
-				) *
-				getCeilingHeightCoefficient(parseFloat(formData.ceilingHeight)) *
-				getBalconyCoefficient(formData.balconyType) *
-				getParkingCoefficient(formData.parkingType) *
-				getYearBuiltCoefficient(parseInt(formData.yearBuilt)) *
-				getKitchenAreaCoefficient(parseFloat(formData.kitchenArea), area)
+			const isRent = formData.purpose === 'rent'
+
+			// Выбор коэффициентов
+			const totalCoef = isRent
+				? getDistrictCoefficient(formData.district, true) *
+				  getMetroCoefficient(parseInt(formData.metroDistance), true) *
+				  getRoomsCoefficient(formData.rooms, true) *
+				  getRenovationCoefficient(formData.renovation, true) *
+				  getBuildingTypeCoefficient(formData.buildingType, true) *
+				  getElevatorCoefficient(
+						parseInt(formData.elevatorCount),
+						formData.hasFreightElevator,
+						true
+				  ) *
+				  getCeilingHeightCoefficient(
+						parseFloat(formData.ceilingHeight),
+						true
+				  ) *
+				  getBalconyCoefficient(formData.balconyType, true) *
+				  getParkingCoefficient(formData.parkingType, true) *
+				  getYearBuiltCoefficient(parseInt(formData.yearBuilt), true) *
+				  getKitchenAreaCoefficient(
+						parseFloat(formData.kitchenArea),
+						area,
+						true
+				  )
+				: getDistrictCoefficient(formData.district) *
+				  getMetroCoefficient(parseInt(formData.metroDistance)) *
+				  getRoomsCoefficient(formData.rooms) *
+				  getRenovationCoefficient(formData.renovation) *
+				  getBuildingTypeCoefficient(formData.buildingType) *
+				  getElevatorCoefficient(
+						parseInt(formData.elevatorCount),
+						formData.hasFreightElevator
+				  ) *
+				  getCeilingHeightCoefficient(parseFloat(formData.ceilingHeight)) *
+				  getBalconyCoefficient(formData.balconyType) *
+				  getParkingCoefficient(formData.parkingType) *
+				  getYearBuiltCoefficient(parseInt(formData.yearBuilt)) *
+				  getKitchenAreaCoefficient(parseFloat(formData.kitchenArea), area)
 
 			const pricePerM2 = basePrice * totalCoef
 			const finalPrice = pricePerM2 * area
-
-			const rentMonth = finalPrice * 0.005 // 0.5% в месяц (пример)
-			const rentDay = rentMonth / 30
+			const rentMonth = Math.round(finalPrice * 0.0045)
+			const rentDay = Math.round(rentMonth / 30)
 
 			setPriceDetails({
 				basePrice,
 				totalArea: area,
-				districtCoef: getDistrictCoefficient(formData.district),
-				metroCoef: getMetroCoefficient(parseInt(formData.metroDistance)),
-				roomsCoef: getRoomsCoefficient(formData.rooms),
-				renovationCoef: getRenovationCoefficient(formData.renovation),
-				buildingCoef: getBuildingTypeCoefficient(formData.buildingType),
+				districtCoef: getDistrictCoefficient(formData.district, isRent),
+				metroCoef: getMetroCoefficient(
+					parseInt(formData.metroDistance),
+					isRent
+				),
+				roomsCoef: getRoomsCoefficient(formData.rooms, isRent),
+				renovationCoef: getRenovationCoefficient(formData.renovation, isRent),
+				buildingCoef: getBuildingTypeCoefficient(formData.buildingType, isRent),
 				elevatorCoef: getElevatorCoefficient(
 					parseInt(formData.elevatorCount),
-					formData.hasFreightElevator
+					formData.hasFreightElevator,
+					isRent
 				),
 				ceilingCoef: getCeilingHeightCoefficient(
-					parseFloat(formData.ceilingHeight)
+					parseFloat(formData.ceilingHeight),
+					isRent
 				),
-				balconyCoef: getBalconyCoefficient(formData.balconyType),
-				parkingCoef: getParkingCoefficient(formData.parkingType),
-				yearBuiltCoef: getYearBuiltCoefficient(parseInt(formData.yearBuilt)),
+				balconyCoef: getBalconyCoefficient(formData.balconyType, isRent),
+				parkingCoef: getParkingCoefficient(formData.parkingType, isRent),
+				yearBuiltCoef: getYearBuiltCoefficient(
+					parseInt(formData.yearBuilt),
+					isRent
+				),
 				kitchenCoef: getKitchenAreaCoefficient(
 					parseFloat(formData.kitchenArea),
-					area
+					area,
+					isRent
 				),
 				pricePerSquareMeter: pricePerM2,
 				finalPrice,
 				rentMonth,
 				rentDay,
+				purpose: formData.purpose,
 			})
 
 			setCalculationSuccess(true)
@@ -174,59 +210,85 @@ export default function AddPropertyPage() {
 		}
 	}
 
-	// ─────────────────────────────────────────────────────────────────────────────
-	// Коэффициенты (оставим без изменений)
-	// ─────────────────────────────────────────────────────────────────────────────
-	function getDistrictCoefficient(d: string) {
-		return d === 'Центральный район' ? 1.15 : 1
+	function getDistrictCoefficient(d: string, isRent = false) {
+		return d === 'Центральный район' ? (isRent ? 1.05 : 1.15) : 1
 	}
-	function getMetroCoefficient(d: number) {
-		return 1 - Math.floor(d / 5) * 0.0029
+
+	function getMetroCoefficient(d: number, isRent = false) {
+		const base = 1 - Math.floor(d / 5) * 0.0029
+		return isRent ? base - 0.01 : base
 	}
-	function getRoomsCoefficient(r: string) {
-		return r === '5+' ? 0.75 : 1 - parseInt(r) * 0.02
+
+	function getRoomsCoefficient(r: string, isRent = false) {
+		const coef = r === '5+' ? 0.75 : 1 - parseInt(r) * 0.02
+		return isRent ? coef * 1.02 : coef
 	}
-	function getRenovationCoefficient(v: string) {
-		return (
-			{
-				'Без отделки': 0.8,
-				'Требует ремонта': 0.9,
-				'Косметический ремонт': 1.0,
-				Евроремонт: 1.1,
-				'Дизайнерский ремонт': 1.2,
-			}[v] ?? 1
-		)
+
+	function getRenovationCoefficient(v: string, isRent = false) {
+		const map = {
+			'Без отделки': isRent ? 0.85 : 0.8,
+			'Требует ремонта': isRent ? 0.95 : 0.9,
+			'Косметический ремонт': 1.0,
+			Евроремонт: isRent ? 1.05 : 1.1,
+			'Дизайнерский ремонт': isRent ? 1.1 : 1.2,
+		}
+		return map[v] ?? 1
 	}
-	function getBuildingTypeCoefficient(t: string) {
-		return (
-			{
-				Кирпичный: 1.05,
-				Монолитный: 1.08,
-				'Монолитно-кирпичный': 1.1,
-				Панельный: 0.95,
-				Блочный: 0.9,
-				Деревянный: 0.8,
-			}[t] ?? 1
-		)
+
+	function getBuildingTypeCoefficient(t: string, isRent = false) {
+		const map = {
+			Кирпичный: isRent ? 1.02 : 1.05,
+			Монолитный: isRent ? 1.04 : 1.08,
+			'Монолитно-кирпичный': isRent ? 1.06 : 1.1,
+			Панельный: isRent ? 0.92 : 0.95,
+			Блочный: 0.9,
+			Деревянный: 0.8,
+		}
+		return map[t] ?? 1
 	}
-	function getElevatorCoefficient(count: number, freight: boolean) {
-		return 1 + (count - 1) * 0.02 + (freight ? 0.03 : 0)
+
+	function getElevatorCoefficient(
+		count: number,
+		freight: boolean,
+		isRent = false
+	) {
+		const value = 1 + (count - 1) * 0.02 + (freight ? 0.03 : 0)
+		return isRent ? value - 0.01 : value
 	}
-	function getCeilingHeightCoefficient(h: number) {
-		return h >= 3 ? 1.05 : h < 2.5 ? 0.95 : 1
+
+	function getCeilingHeightCoefficient(h: number, isRent = false) {
+		if (h >= 3) return isRent ? 1.03 : 1.05
+		if (h < 2.5) return isRent ? 0.96 : 0.95
+		return 1
 	}
-	function getBalconyCoefficient(b: string) {
-		return b === 'Нет' ? 0.97 : b === 'Несколько' ? 1.03 : 1
+
+	function getBalconyCoefficient(b: string, isRent = false) {
+		if (b === 'Нет') return isRent ? 0.98 : 0.97
+		if (b === 'Несколько') return isRent ? 1.02 : 1.03
+		return 1
 	}
-	function getParkingCoefficient(p: string) {
-		return { Нет: 0.95, Открытая: 1, Крытая: 1.03, Подземная: 1.05 }[p] ?? 1
+
+	function getParkingCoefficient(p: string, isRent = false) {
+		const map = {
+			Нет: isRent ? 0.97 : 0.95,
+			Открытая: 1,
+			Крытая: isRent ? 1.02 : 1.03,
+			Подземная: isRent ? 1.04 : 1.05,
+		}
+		return map[p] ?? 1
 	}
-	function getYearBuiltCoefficient(y: number) {
+
+	function getYearBuiltCoefficient(y: number, isRent = false) {
 		const age = new Date().getFullYear() - y
-		return age > 50 ? 0.85 : age > 30 ? 0.92 : 1
+		if (age > 50) return isRent ? 0.9 : 0.85
+		if (age > 30) return isRent ? 0.95 : 0.92
+		return 1
 	}
-	function getKitchenAreaCoefficient(k: number, total: number) {
-		return k < 6 ? 0.95 : k / total > 0.15 ? 1.03 : 1
+
+	function getKitchenAreaCoefficient(k: number, total: number, isRent = false) {
+		if (k < 6) return isRent ? 0.96 : 0.95
+		if (k / total > 0.15) return isRent ? 1.02 : 1.03
+		return 1
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────────
@@ -300,6 +362,7 @@ export default function AddPropertyPage() {
 							<MarketAnalytics
 								district={formData.district}
 								pricePerM2={priceDetails.pricePerSquareMeter}
+								purpose={formData.purpose}
 							/>
 						</>
 					)}

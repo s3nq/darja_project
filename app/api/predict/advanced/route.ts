@@ -1,67 +1,91 @@
 import { pool } from '@/lib/database'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Глубокая вероятностная модель прогнозирования цен
 export async function GET(req: NextRequest) {
 	try {
-		// 1. Получаем все районы
-		const districtsRes = await pool.query(`
-			SELECT DISTINCT district FROM properties
-		`)
+		//  Получаем районы
+		const districtsRes = await pool.query(
+			`SELECT DISTINCT district FROM properties`
+		)
 		const districts = districtsRes.rows.map(r => r.district)
 
-		// 2. Анализ по каждому району
 		const results: any[] = []
 
 		for (const district of districts) {
-			// Средняя текущая цена
-			const currentRes = await pool.query(
-				`
-        SELECT ROUND(AVG(price)) AS current_price
-        FROM properties
-        WHERE district = $1 AND area > 0 AND price > 0
-        `,
-				[district]
-			)
-			const current_price = Number(currentRes.rows[0]?.current_price ?? 0)
-			if (!current_price) continue
-
-			// История (тренд)
+			//  Получение исторических цен по месяцам
 			const historyRes = await pool.query(
 				`
-        SELECT 
-          TO_CHAR(created_at, 'YYYY-MM') AS month,
-          ROUND(AVG(price / NULLIF(area, 0))) AS avg_price
-        FROM properties
-        WHERE district = $1
-        GROUP BY month
-        ORDER BY month DESC
-        LIMIT 3
-        `,
+				SELECT 
+					TO_CHAR(created_at, 'YYYY-MM') AS month,
+					ROUND(AVG(price / NULLIF(area, 0))) AS avg_price
+				FROM properties
+				WHERE district = $1
+				GROUP BY month
+				ORDER BY month ASC
+				LIMIT 12
+			`,
 				[district]
 			)
 
 			const hist = historyRes.rows
-			let trend = 0
+			if (hist.length < 3) continue // Мало данных — скипаем
 
-			if (hist.length >= 2) {
-				const recent = hist[0].avg_price
-				const past = hist[hist.length - 1].avg_price
-				trend = (recent - past) / past
-			}
+			const prices = hist.map(h => Number(h.avg_price)).filter(Boolean)
+			const lnPrices = prices.map(p => Math.log(p))
+			const t = Array.from({ length: lnPrices.length }, (_, i) => i + 1)
 
-			// Прогноз
-			const predicted_price = Math.round(current_price * (1 + trend))
+			//  Логарифмическая регрессия (находим α и β)
+			const n = lnPrices.length
+			const sumT = t.reduce((a, b) => a + b, 0)
+			const sumLnP = lnPrices.reduce((a, b) => a + b, 0)
+			const sumT2 = t.reduce((a, b) => a + b * b, 0)
+			const sumTLnP = t.reduce((sum, ti, i) => sum + ti * lnPrices[i], 0)
+
+			const beta = (n * sumTLnP - sumT * sumLnP) / (n * sumT2 - sumT * sumT)
+			const alpha = (sumLnP - beta * sumT) / n
+
+			//  Прогноз на следующий месяц
+			const tNext = n + 1
+			const predicted_ln_price = alpha + beta * tNext
+			const predicted_price = Math.exp(predicted_ln_price)
+
+			//  Оценка отклонений и доверительного интервала
+			const residuals = lnPrices.map((lnP, i) => lnP - (alpha + beta * t[i]))
+			const variance = residuals.reduce((sum, r) => sum + r * r, 0) / (n - 2)
+			const std_error = Math.sqrt(variance)
+
+			// Уровень доверия 68% (можно заменить на 95% → * 1.96)
+			const epsilon = Math.exp(predicted_ln_price + std_error) - predicted_price
+
+			// 🔹 Средняя текущая цена (по всей выборке)
+			const currentRes = await pool.query(
+				`
+				SELECT ROUND(AVG(price / NULLIF(area, 0))) AS current_price
+				FROM properties
+				WHERE district = $1 AND area > 0 AND price > 0
+			`,
+				[district]
+			)
+
+			const current_price = Number(currentRes.rows[0]?.current_price ?? 0)
+
+			//  Индекс надёжности (низкая дисперсия = высокая уверенность)
+			const uncertainty_index = 1 - Math.min(std_error, 1) // чем меньше, тем лучше
+
 			const diff = ((predicted_price - current_price) / current_price) * 100
 
 			results.push({
 				district,
-				current_price,
-				predicted_price,
-				diff,
+				current_price: Math.round(current_price),
+				predicted_price: Math.round(predicted_price),
+				confidence_interval: `±${Math.round(epsilon)} ₽`,
+				diff: Number(diff.toFixed(2)),
+				reliability: Math.round(uncertainty_index * 100) + '%',
 			})
 		}
 
-		// Фильтрация и сортировка
+		//  Фильтрация и сортировка
 		const { searchParams } = new URL(req.url)
 		const sort = searchParams.get('sort') === 'desc' ? 'desc' : 'asc'
 		const districtFilter = searchParams.get('district')
@@ -78,7 +102,7 @@ export async function GET(req: NextRequest) {
 	} catch (err) {
 		console.error('[predict/advanced] error:', err)
 		return NextResponse.json(
-			{ error: 'Failed to fetch district prediction' },
+			{ error: 'Failed to fetch prediction' },
 			{ status: 500 }
 		)
 	}

@@ -7,6 +7,7 @@ import { useState } from 'react'
 
 import { AdvancedPredictionForm } from '@/components/analytics/AdvancedPredictionForm'
 import { PriceChart } from '@/components/analytics/PriceChart'
+import { LogoutButton } from '@/components/LogoutButton'
 import { PropertyModal } from '@/components/properties/PropertyModal'
 import { Button } from '@/components/ui/button'
 import {
@@ -108,6 +109,7 @@ export default function Home() {
 							Добавить объект
 						</Link>
 					</Button>
+					<LogoutButton />
 				</div>
 			</header>
 

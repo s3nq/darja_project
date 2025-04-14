@@ -1,36 +1,13 @@
-//C:\Users\tawer\Desktop\darja_project\components\properties\CreatePropertyForm\PriceCalculator\PriceDetails.tsx
 'use client'
 
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { Info } from 'lucide-react'
-
-export interface PriceDetailsType {
-	basePrice: number
-	totalArea: number
-
-	districtCoef: number
-	metroCoef: number
-	roomsCoef: number
-	renovationCoef: number
-	buildingCoef: number
-	elevatorCoef: number
-	ceilingCoef: number
-	balconyCoef: number
-	parkingCoef: number
-	yearBuiltCoef: number
-	kitchenCoef: number
-
-	pricePerSquareMeter: number
-	finalPrice: number
-	purpose?: 'buy' | 'rent'
-}
+import { PriceDetailsType } from './types'
 
 export function PriceDetails({ details }: { details: PriceDetailsType }) {
 	const { purpose = 'buy' } = details
 	const isRent = purpose === 'rent'
-	const rentMonth = Math.round(details.finalPrice * 0.004)
-	const rentDay = Math.round(rentMonth / 30)
 
 	return (
 		<div className='border rounded-lg p-4 space-y-4'>
@@ -45,12 +22,6 @@ export function PriceDetails({ details }: { details: PriceDetailsType }) {
 			<Table>
 				<TableBody>
 					{/* БАЗОВОЕ */}
-					<TableRow>
-						<TableCell className='font-medium'>Базовая цена за 1 м²</TableCell>
-						<TableCell className='text-right'>
-							{details.basePrice.toLocaleString()} ₽
-						</TableCell>
-					</TableRow>
 
 					<TableRow>
 						<TableCell>Общая площадь</TableCell>
@@ -139,14 +110,14 @@ export function PriceDetails({ details }: { details: PriceDetailsType }) {
 								<TableCell className='font-medium'>Аренда в месяц</TableCell>
 								<TableCell className='text-right font-medium text-primary'>
 									<Badge variant='outline' className='px-3 py-1 text-base'>
-										{rentMonth.toLocaleString()} ₽
+										{details.rentMonth?.toLocaleString()} ₽
 									</Badge>
 								</TableCell>
 							</TableRow>
 							<TableRow>
 								<TableCell>Аренда в сутки</TableCell>
 								<TableCell className='text-right'>
-									{rentDay.toLocaleString()} ₽
+									{details.rentDay?.toLocaleString()} ₽
 								</TableCell>
 							</TableRow>
 						</>
