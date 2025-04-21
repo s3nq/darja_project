@@ -19,6 +19,12 @@ export type PropertyFormData = {
 	yearBuilt: string
 	description: string
 	purpose: 'buy' | 'rent'
+	agents: string[]
+	owners: {
+		name: string
+		phone: string
+		email: string
+	}[]
 }
 
 export type PriceDetails = {
@@ -40,7 +46,11 @@ export type PriceDetails = {
 	secondaryFactorsCoefficient: number
 	purpose: 'buy' | 'rent'
 }
-
+export interface Owner {
+	name: string
+	phone: string
+	email: string
+}
 export interface Property {
 	calculatedPricePerM2: any
 	price_per_m2?: number
@@ -74,4 +84,10 @@ export interface Property {
 	description?: string
 	price: number
 	purpose: 'buy' | 'rent'
+	agents: string[]
+	owners: {
+		name: string
+		phone: string
+		email: string
+	}[]
 }

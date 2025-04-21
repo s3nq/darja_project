@@ -3,7 +3,6 @@
 import { pool } from '@/lib/database'
 import { NextRequest, NextResponse } from 'next/server'
 
-// Сопоставление полных названий районов с сокращениями
 const districtMap: Record<string, string> = {
 	'Центральный район': 'ЦАО',
 	'Северный район': 'САО',
@@ -14,8 +13,6 @@ const districtMap: Record<string, string> = {
 	'Северо-Восточный район': 'СВАО',
 	'Юго-Восточный район': 'ЮВАО',
 	'Северо-Западный район': 'СЗАО',
-	Таганский: 'ЦАО',
-	Арбат: 'ЦАО',
 }
 
 export async function POST(req: NextRequest) {
@@ -47,11 +44,11 @@ export async function POST(req: NextRequest) {
 			season,
 			inflation_rate,
 			documents,
+			owners,
+			agents,
 		} = data
 
-		// Перевод полного названия района в сокращённое
 		const shortDistrict = districtMap[district] || district
-
 		const calculatedPricePerM2 = area && price ? Math.round(price / area) : null
 
 		const result = await pool.query(
@@ -61,14 +58,16 @@ export async function POST(req: NextRequest) {
         metro_distance, rooms, renovation, kitchen_area,
         balcony_type, building_type, elevator_count, has_freight_elevator,
         ceiling_height, parking_type, floor, total_floors,
-        year_built, description, purpose, season, inflation_rate, documents, price_per_m2
+        year_built, description, purpose, season, inflation_rate, documents, price_per_m2,
+        agents, owners
       )
       VALUES (
         $1, $2, $3, $4, $5, $6,
         $7, $8, $9, $10,
         $11, $12, $13, $14,
         $15, $16, $17, $18,
-        $19, $20, $21, $22, $23, $24, $25
+        $19, $20, $21, $22, $23, $24, $25,
+        $26, $27
       )
       RETURNING *
     `,
@@ -98,6 +97,8 @@ export async function POST(req: NextRequest) {
 				inflation_rate,
 				documents,
 				calculatedPricePerM2,
+				JSON.stringify(agents ?? []),
+				JSON.stringify(owners ?? []),
 			]
 		)
 
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
 		)
 	}
 }
+
 export async function GET() {
 	try {
 		const result = await pool.query(

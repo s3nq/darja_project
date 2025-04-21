@@ -11,6 +11,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Property } from '@/types/property'
 import { ArrowDownToLine, Download, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 interface PropertyModalProps {
@@ -26,6 +27,7 @@ export function PropertyModal({
 }: PropertyModalProps) {
 	const [uploadedDocs, setUploadedDocs] = useState<string[]>([])
 	const dropRef = useRef<HTMLDivElement>(null)
+	const router = useRouter()
 
 	useEffect(() => {
 		if (!property) return
@@ -109,7 +111,7 @@ export function PropertyModal({
 	if (!property) return null
 
 	const staticDocs: Record<string, string> = {
-		'Акт приема-передачи.': 'akt.pdf',
+		'Акт приема-передачи': 'akt.pdf',
 		'Выписка из домовой книги': 'domkniga.pdf',
 		'Выписка из ЕГРН': 'egrn.pdf',
 		'Договор купли-продажи': 'kyplya.pdf',
@@ -162,6 +164,7 @@ export function PropertyModal({
 								</p>
 							)}
 						</div>
+
 						{/* Характеристики */}
 						<div>
 							<h3 className='text-base font-semibold mb-2'>
@@ -192,6 +195,57 @@ export function PropertyModal({
 								</p>
 							</div>
 						</div>
+						{/* Собственники */}
+						{Array.isArray(property.owners) && property.owners.length > 0 && (
+							<div className='space-y-2'>
+								<h3 className='text-base font-semibold mb-2'>
+									🧑‍💼 Собственники
+								</h3>
+								<div className='grid gap-3'>
+									{property.owners.map((owner, idx) => (
+										<div
+											key={idx}
+											className='border rounded-md p-3 bg-gray-50 dark:bg-muted text-sm'
+										>
+											<p className='font-semibold text-black dark:text-white'>
+												{owner.name}
+											</p>
+											<p className='text-muted-foreground text-sm'>
+												📞 <span className='ml-1'>{owner.phone}</span>
+											</p>
+											<p className='text-muted-foreground text-sm'>
+												📧 <span className='ml-1'>{owner.email}</span>
+											</p>
+										</div>
+									))}
+								</div>
+							</div>
+						)}
+
+						{/* Риэлторы */}
+						{Array.isArray(property.agents) && property.agents.length > 0 && (
+							<div className='space-y-2'>
+								<h3 className='text-base font-semibold mb-2'>👩‍💼 Риэлторы</h3>
+								<ul className='grid gap-2 list-none'>
+									{property.agents.map((agent, idx) => (
+										<li
+											key={idx}
+											className='border rounded-md px-3 py-2 bg-gray-50 dark:bg-muted text-sm'
+										>
+											{agent}
+										</li>
+									))}
+								</ul>
+							</div>
+						)}
+
+						<Button
+							variant='outline'
+							onClick={() => router.push(`/properties/${property.id}/edit`)}
+						>
+							Редактировать
+						</Button>
+
 						{/* документы */}
 						<div>
 							<div className='flex justify-between items-center mb-2'>

@@ -14,12 +14,12 @@ const templateMap: Record<string, string> = {
 
 export async function GET(
 	request: NextRequest,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
-	const id = params.id
-	const type = decodeURIComponent(
+	const { id } = await params
+	let type = decodeURIComponent(
 		request.nextUrl.searchParams.get('type') || ''
-	)
+	).trim()
 
 	try {
 		let filePath: string
@@ -39,9 +39,9 @@ export async function GET(
 		return new NextResponse(fileBuffer, {
 			headers: {
 				'Content-Type': 'application/pdf',
-				'Content-Disposition': `attachment; filename="file.pdf"; filename*=UTF-8''${encodeURIComponent(
-					type
-				)}.pdf`,
+				'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(
+					`${type}.pdf`
+				)}`,
 			},
 		})
 	} catch (error) {

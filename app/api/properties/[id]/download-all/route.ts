@@ -1,53 +1,62 @@
 import { existsSync, readFileSync } from 'fs'
 import { NextRequest, NextResponse } from 'next/server'
 import { join } from 'path'
+import { PDFDocument } from 'pdf-lib'
 
 export async function GET(
-	request: NextRequest,
-	{ params }: { params: { id: string } }
+	_request: NextRequest,
+	{ params }: { params: Promise<{ id: string }> }
 ) {
-	const id = params.id
-	const type = decodeURIComponent(
-		request.nextUrl.searchParams.get('type') || ''
-	)
+	const { id } = await params
 
-	if (!type) {
-		return NextResponse.json(
-			{ error: 'Тип документа не указан' },
-			{ status: 400 }
+	const templateDir = join(process.cwd(), 'public', 'templates')
+	const uploadsDir = join(process.cwd(), 'public', 'uploads', id)
+
+	const allDocs = [
+		'akt.pdf',
+		'domkniga.pdf',
+		'egrn.pdf',
+		'kyplya.pdf',
+		'licevoy.pdf',
+		'pnd.pdf',
+		'sobstv.pdf',
+	]
+
+	const mergedPdf = await PDFDocument.create()
+
+	// Добавляем шаблонные документы
+	for (const fileName of allDocs) {
+		const filePath = join(templateDir, fileName)
+		if (existsSync(filePath)) {
+			const fileBuffer = readFileSync(filePath)
+			const pdf = await PDFDocument.load(fileBuffer)
+			const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices())
+			copiedPages.forEach(page => mergedPdf.addPage(page))
+		}
+	}
+
+	// Добавляем загруженные пользователем документы
+	if (existsSync(uploadsDir)) {
+		const uploadedFiles = readdirSync(uploadsDir).filter(f =>
+			f.endsWith('.pdf')
 		)
+		for (const fileName of uploadedFiles) {
+			const filePath = join(uploadsDir, fileName)
+			if (existsSync(filePath)) {
+				const fileBuffer = readFileSync(filePath)
+				const pdf = await PDFDocument.load(fileBuffer)
+				const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices())
+				copiedPages.forEach(page => mergedPdf.addPage(page))
+			}
+		}
 	}
 
-	const uploadsPath = join(
-		process.cwd(),
-		'public',
-		'uploads',
-		id,
-		`${type}.pdf`
-	)
-	const templatePath = join(process.cwd(), 'public', 'templates', `${type}.pdf`)
+	const mergedPdfBytes = await mergedPdf.save()
 
-	let filePath = existsSync(uploadsPath)
-		? uploadsPath
-		: existsSync(templatePath)
-		? templatePath
-		: null
-
-	if (!filePath) {
-		return NextResponse.json({ error: 'Файл не найден' }, { status: 404 })
-	}
-
-	try {
-		const fileBuffer = readFileSync(filePath)
-
-		return new NextResponse(fileBuffer, {
-			headers: {
-				'Content-Type': 'application/pdf',
-				'Content-Disposition': `attachment; filename="${type}.pdf"`,
-			},
-		})
-	} catch (err) {
-		console.error('Ошибка при скачивании файла:', err)
-		return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 })
-	}
+	return new NextResponse(Buffer.from(mergedPdfBytes), {
+		headers: {
+			'Content-Type': 'application/pdf',
+			'Content-Disposition': `attachment; filename="all_documents.pdf"`,
+		},
+	})
 }

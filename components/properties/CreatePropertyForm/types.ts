@@ -1,4 +1,5 @@
 export interface PropertyFormData {
+	agents: never[]
 	price: string
 	condition: string
 	totalFloors: string
@@ -19,4 +20,19 @@ export interface PropertyFormData {
 	yearBuilt: string
 	description?: string
 	purpose?: 'buy' | 'rent'
+	realtors: string[]
+	owners: {
+		name: string
+		phone: string
+		email: string
+	}[]
+}
+export interface Agent {
+	name: string
+}
+
+export interface Owner {
+	name: string
+	phone?: string
+	email?: string
 }
