@@ -1,21 +1,22 @@
 'use client'
+
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from './button'
 import { Input } from './input'
 
-export function RealtorList({
-	values,
-	onChange,
-}: {
-	values: string[]
+interface RealtorListProps {
+	values?: string[]
 	onChange: (newList: string[]) => void
-}) {
+}
+
+export function RealtorList({ values = [], onChange }: RealtorListProps) {
 	const [input, setInput] = useState('')
 
 	const addRealtor = () => {
-		if (input.trim()) {
-			onChange([...values, input.trim()])
+		const trimmed = input.trim()
+		if (trimmed) {
+			onChange([...values, trimmed])
 			setInput('')
 		}
 	}
@@ -27,23 +28,26 @@ export function RealtorList({
 	return (
 		<div className='space-y-4'>
 			<h3 className='font-semibold text-lg'>Риэлторы</h3>
+
 			<div className='space-y-2'>
 				{values.map((name, i) => (
 					<div
 						key={i}
-						className='flex items-center justify-between border p-2 rounded shadow-sm'
+						className='flex items-center justify-between border p-2 rounded-md bg-gray-50 dark:bg-muted shadow-sm'
 					>
-						<span>{name}</span>
+						<span className='text-sm'>{name}</span>
 						<Button
 							variant='ghost'
 							size='icon'
 							onClick={() => removeRealtor(i)}
+							aria-label='Удалить риэлтора'
 						>
 							<Trash2 className='w-4 h-4 text-red-500' />
 						</Button>
 					</div>
 				))}
 			</div>
+
 			<div className='flex gap-2'>
 				<Input
 					value={input}

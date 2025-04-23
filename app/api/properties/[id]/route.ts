@@ -68,7 +68,7 @@ export async function PUT(
 				inflation_rate = $23,
 				documents = $24,
 				price_per_m2 = $25,
-				realtors = $26,
+				agents = $26,
 				owners = $27
 			WHERE id = $28
 			RETURNING *`,
@@ -98,7 +98,7 @@ export async function PUT(
 				parseFloat(data.inflation_rate),
 				data.documents,
 				data.price_per_m2,
-				JSON.stringify(data.realtors ?? []),
+				JSON.stringify(data.agents ?? []),
 				JSON.stringify(data.owners ?? []),
 				id,
 			]

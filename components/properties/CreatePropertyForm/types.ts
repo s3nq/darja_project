@@ -20,7 +20,6 @@ export interface PropertyFormData {
 	yearBuilt: string
 	description?: string
 	purpose?: 'buy' | 'rent'
-	realtors: string[]
 	owners: {
 		name: string
 		phone: string
