@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
 			// Уровень доверия 68% (можно заменить на 95% → * 1.96)
 			const epsilon = Math.exp(predicted_ln_price + std_error) - predicted_price
 
-			// 🔹 Средняя текущая цена (по всей выборке)
+			//  Средняя текущая цена (по всей выборке)
 			const currentRes = await pool.query(
 				`
 				SELECT ROUND(AVG(price / NULLIF(area, 0))) AS current_price
