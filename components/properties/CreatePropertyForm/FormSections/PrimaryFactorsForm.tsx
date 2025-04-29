@@ -59,7 +59,7 @@ export const PrimaryFactorsForm = ({
 						<SelectItem value='2'>2 комнаты</SelectItem>
 						<SelectItem value='3'>3 комнаты</SelectItem>
 						<SelectItem value='4'>4 комнаты</SelectItem>
-						<SelectItem value='5+'>5 и более</SelectItem>
+						<SelectItem value='5'>5 и более</SelectItem>
 					</SelectContent>
 				</Select>
 			</div>

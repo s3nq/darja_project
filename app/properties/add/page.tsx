@@ -56,9 +56,81 @@ export default function AddPropertyPage({
 		initialValues || defaultFormData
 	)
 
+	const normalizeDistrict = (v: string) => {
+		const map: Record<string, string> = {
+			ЦАО: 'Центральный район',
+			САО: 'Северный район',
+			ЮАО: 'Южный район',
+			ВАО: 'Восточный район',
+			ЗАО: 'Западный район',
+		}
+		return map[v] || v
+	}
+
+	const normalizeRenovation = (v: string) => {
+		const map = {
+			'Без отделки': 'Без отделки',
+			'Требует ремонта': 'Требует ремонта',
+			'Косметический ремонт': 'Косметический ремонт',
+			Евроремонт: 'Евроремонт',
+			'Дизайнерский ремонт': 'Дизайнерский ремонт',
+		}
+		return map[v] || ''
+	}
+
+	const normalizeBuildingType = (v: string) => {
+		const map = {
+			Кирпичный: 'Кирпичный',
+			Монолитный: 'Монолитный',
+			'Монолитно-кирпичный': 'Монолитно-кирпичный',
+			Панельный: 'Панельный',
+			Блочный: 'Блочный',
+			Деревянный: 'Деревянный',
+		}
+		return map[v] || ''
+	}
+
+	const normalizeBalconyType = (v: string) => {
+		const map = {
+			Нет: 'Нет',
+			Балкон: 'Балкон',
+			Лоджия: 'Лоджия',
+			Несколько: 'Несколько',
+		}
+		return map[v] || ''
+	}
+
+	const normalizeParkingType = (v: string) => {
+		const map = {
+			Нет: 'Нет',
+			Открытая: 'Открытая',
+			Крытая: 'Крытая',
+			Подземная: 'Подземная',
+		}
+		return map[v] || ''
+	}
+
+	const normalizeRooms = (v: string) => {
+		if (v === '5+' || v === '5 и более') return '5+'
+		if (['0', '1', '2', '3', '4'].includes(v)) return v
+		return ''
+	}
+
 	useEffect(() => {
 		if (initialValues) {
-			setFormData(initialValues)
+			setFormData({
+				...initialValues,
+				district: normalizeDistrict(initialValues.district),
+				renovation: normalizeRenovation(initialValues.renovation),
+				buildingType: normalizeBuildingType(initialValues.buildingType),
+				balconyType: normalizeBalconyType(initialValues.balconyType),
+				parkingType: normalizeParkingType(initialValues.parkingType),
+				rooms: normalizeRooms(initialValues.rooms),
+				elevatorCount: initialValues.elevatorCount?.toString() ?? '',
+				metroDistance: initialValues.metroDistance?.toString() ?? '',
+				ceilingHeight: initialValues.ceilingHeight?.toString() ?? '',
+				kitchenArea: initialValues.kitchenArea?.toString() ?? '',
+			})
 		}
 	}, [initialValues])
 
@@ -361,7 +433,7 @@ export default function AddPropertyPage({
 						/>
 
 						<OwnerList
-							values={formData.owners || []}
+							values={formData.owners}
 							onChange={owners => setFormData(prev => ({ ...prev, owners }))}
 						/>
 						<PrimaryFactorsForm
@@ -423,4 +495,14 @@ export default function AddPropertyPage({
 			</div>
 		)
 	}
+}
+const normalizeRenovation = (v: string) => {
+	const map = {
+		'Без отделки': 'Без отделки',
+		'Требует ремонта': 'Требует ремонта',
+		'Косметический ремонт': 'Косметический ремонт',
+		Евроремонт: 'Евроремонт',
+		'Дизайнерский ремонт': 'Дизайнерский ремонт',
+	}
+	return map[v] || ''
 }

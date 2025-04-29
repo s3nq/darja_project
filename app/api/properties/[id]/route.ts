@@ -1,22 +1,12 @@
 import { pool } from '@/lib/database'
 import { NextRequest, NextResponse } from 'next/server'
 
-const safeNumber = (value: any): number | null => {
-	const num = parseFloat(value)
-	return isNaN(num) ? null : num
-}
-
-const safeInt = (value: any): number | null => {
-	const num = parseInt(value)
-	return isNaN(num) ? null : num
-}
-
 export async function PATCH(
 	req: NextRequest,
-	{ params }: { params: Promise<{ id: string }> }
+	{ params }: { params: { id: string } }
 ) {
 	try {
-		const { id } = await params
+		const { id } = params
 		const propertyId = parseInt(id)
 		const { status } = await req.json()
 
@@ -34,11 +24,10 @@ export async function PATCH(
 
 export async function PUT(
 	req: NextRequest,
-	context: { params: { id: string } }
+	{ params }: { params: { id: string } }
 ) {
 	try {
-		const { params } = context
-		const id = Number(params.id)
+		const { id } = params
 		const data = await req.json()
 
 		const result = await pool.query(
@@ -100,7 +89,7 @@ export async function PUT(
 				data.price_per_m2,
 				JSON.stringify(data.agents ?? []),
 				JSON.stringify(data.owners ?? []),
-				id,
+				Number(id),
 			]
 		)
 
@@ -116,16 +105,28 @@ export async function GET(
 	{ params }: { params: { id: string } }
 ) {
 	try {
-		const id = parseInt(params.id)
+		const { id } = params
 		const result = await pool.query('SELECT * FROM properties WHERE id = $1', [
-			id,
+			Number(id),
 		])
 
 		if (result.rows.length === 0) {
 			return NextResponse.json({ error: 'Объект не найден' }, { status: 404 })
 		}
 
-		return NextResponse.json(result.rows[0])
+		const row = result.rows[0]
+
+		return NextResponse.json({
+			...row,
+			agents:
+				typeof row.agents === 'string'
+					? JSON.parse(row.agents || '[]')
+					: row.agents ?? [],
+			owners:
+				typeof row.owners === 'string'
+					? JSON.parse(row.owners || '[]')
+					: row.owners ?? [],
+		})
 	} catch (error) {
 		console.error('Ошибка при получении объекта:', error)
 		return NextResponse.json(

@@ -41,6 +41,8 @@ export default function EditPropertyWrapper() {
 				hasFreightElevator: data.hasFreightElevator || false,
 				ceilingHeight: data.ceilingHeight?.toString() || '',
 				parkingType: data.parkingType || '',
+				agents: Array.isArray(data.agents) ? data.agents : [],
+				owners: Array.isArray(data.owners) ? data.owners : [],
 			})
 		}
 		fetchData()
