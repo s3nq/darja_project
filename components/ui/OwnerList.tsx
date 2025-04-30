@@ -4,14 +4,24 @@ import { useState } from 'react'
 import { Button } from './button'
 import { Input } from './input'
 
+export type Owner = {
+	name: string
+	phone: string
+	email: string
+}
+
 export function OwnerList({
 	values,
 	onChange,
 }: {
-	values: { name: string; phone: string; email: string }[]
-	onChange: (newList: { name: string; phone: string; email: string }[]) => void
+	values: Owner[]
+	onChange: (newList: Owner[]) => void
 }) {
-	const [owner, setOwner] = useState({ name: '', phone: '', email: '' })
+	const [owner, setOwner] = useState<Owner>({
+		name: '',
+		phone: '',
+		email: '',
+	})
 
 	const addOwner = () => {
 		if (owner.name.trim()) {
@@ -40,7 +50,12 @@ export function OwnerList({
 							<p className='text-sm text-muted-foreground'>{o.phone}</p>
 							<p className='text-sm text-muted-foreground'>{o.email}</p>
 						</div>
-						<Button variant='ghost' size='icon' onClick={() => removeOwner(i)}>
+						<Button
+							variant='ghost'
+							size='icon'
+							onClick={() => removeOwner(i)}
+							aria-label='Удалить собственника'
+						>
 							<Trash2 className='w-4 h-4 text-red-500' />
 						</Button>
 					</div>
@@ -50,20 +65,22 @@ export function OwnerList({
 				<Input
 					placeholder='ФИО'
 					value={owner.name}
-					onChange={e => setOwner({ ...owner, name: e.target.value })}
+					onChange={e => setOwner(prev => ({ ...prev, name: e.target.value }))}
 				/>
 				<Input
 					placeholder='Телефон'
 					value={owner.phone}
-					onChange={e => setOwner({ ...owner, phone: e.target.value })}
+					onChange={e => setOwner(prev => ({ ...prev, phone: e.target.value }))}
 				/>
 				<Input
 					placeholder='Email'
 					value={owner.email}
-					onChange={e => setOwner({ ...owner, email: e.target.value })}
+					onChange={e => setOwner(prev => ({ ...prev, email: e.target.value }))}
 				/>
 			</div>
-			<Button onClick={addOwner}>Добавить</Button>
+			<Button onClick={addOwner} disabled={!owner.name.trim()}>
+				Добавить
+			</Button>
 		</div>
 	)
 }

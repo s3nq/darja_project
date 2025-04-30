@@ -28,7 +28,7 @@ export const PrimaryFactorsForm = ({
 			<div className='space-y-2'>
 				<Label>Район</Label>
 				<Select
-					value={values.district}
+					value={values.district || ''}
 					onValueChange={v => onValueChange('district', v)}
 				>
 					<SelectTrigger>
@@ -47,7 +47,7 @@ export const PrimaryFactorsForm = ({
 			<div className='space-y-2'>
 				<Label>Количество комнат</Label>
 				<Select
-					value={values.rooms}
+					value={values.rooms?.toString() ?? ''}
 					onValueChange={v => onValueChange('rooms', v)}
 				>
 					<SelectTrigger>
@@ -59,7 +59,7 @@ export const PrimaryFactorsForm = ({
 						<SelectItem value='2'>2 комнаты</SelectItem>
 						<SelectItem value='3'>3 комнаты</SelectItem>
 						<SelectItem value='4'>4 комнаты</SelectItem>
-						<SelectItem value='5'>5 и более</SelectItem>
+						<SelectItem value='5+'>5 и более</SelectItem>
 					</SelectContent>
 				</Select>
 			</div>
@@ -68,16 +68,16 @@ export const PrimaryFactorsForm = ({
 		<div className='space-y-2'>
 			<Label>Адрес</Label>
 			<Input
-				value={values.address}
+				value={values.address ?? ''}
 				onChange={e => onValueChange('address', e.target.value)}
 				placeholder='Полный адрес объекта'
 			/>
 		</div>
 
 		<div className='space-y-2'>
-			<Label>Расстояние до метро: {values.metroDistance} мин</Label>
+			<Label>Расстояние до метро: {values.metroDistance ?? '10'} мин</Label>
 			<Slider
-				value={[Number(values.metroDistance)]}
+				value={[Number(values.metroDistance ?? 10)]}
 				onValueChange={v => onSliderChange('metroDistance', v)}
 				min={1}
 				max={30}
@@ -89,7 +89,7 @@ export const PrimaryFactorsForm = ({
 			<div className='space-y-2'>
 				<Label>Ремонт</Label>
 				<Select
-					value={values.renovation}
+					value={values.renovation || ''}
 					onValueChange={v => onValueChange('renovation', v)}
 				>
 					<SelectTrigger>
@@ -113,7 +113,7 @@ export const PrimaryFactorsForm = ({
 				<Label>Площадь кухни (м²)</Label>
 				<Input
 					type='number'
-					value={values.kitchenArea}
+					value={values.kitchenArea ?? ''}
 					onChange={e => onValueChange('kitchenArea', e.target.value)}
 				/>
 			</div>
@@ -123,7 +123,7 @@ export const PrimaryFactorsForm = ({
 			<div className='space-y-2'>
 				<Label>Балкон / лоджия</Label>
 				<Select
-					value={values.balconyType}
+					value={values.balconyType || ''}
 					onValueChange={v => onValueChange('balconyType', v)}
 				>
 					<SelectTrigger>
@@ -143,7 +143,7 @@ export const PrimaryFactorsForm = ({
 				<Input
 					type='number'
 					step='0.01'
-					value={values.ceilingHeight}
+					value={values.ceilingHeight ?? ''}
 					onChange={e => onValueChange('ceilingHeight', e.target.value)}
 				/>
 			</div>
@@ -152,7 +152,7 @@ export const PrimaryFactorsForm = ({
 		<div className='space-y-2'>
 			<Label>Парковка</Label>
 			<Select
-				value={values.parkingType}
+				value={values.parkingType || ''}
 				onValueChange={v => onValueChange('parkingType', v)}
 			>
 				<SelectTrigger>

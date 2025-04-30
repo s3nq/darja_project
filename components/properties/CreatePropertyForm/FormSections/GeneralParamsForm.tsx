@@ -20,7 +20,7 @@ export const GeneralParamsForm = ({
 				<Label>Общая площадь (м²)</Label>
 				<Input
 					type='number'
-					value={values.area}
+					value={values.area ?? ''}
 					onChange={e => onValueChange('area', e.target.value)}
 				/>
 			</div>
@@ -28,15 +28,17 @@ export const GeneralParamsForm = ({
 				<Label>Этаж</Label>
 				<Input
 					type='number'
-					value={values.floor}
+					value={values.floor ?? ''}
 					onChange={e => onValueChange('floor', e.target.value)}
+					placeholder='Этаж'
+					min='0'
 				/>
 			</div>
 			<div className='space-y-2'>
 				<Label>Всего этажей</Label>
 				<Input
 					type='number'
-					value={values.totalFloors}
+					value={values.totalFloors ?? ''}
 					onChange={e => onValueChange('totalFloors', e.target.value)}
 				/>
 			</div>
@@ -46,7 +48,7 @@ export const GeneralParamsForm = ({
 			<Label>Год постройки</Label>
 			<Input
 				type='number'
-				value={values.yearBuilt}
+				value={values.yearBuilt ?? ''}
 				onChange={e => onValueChange('yearBuilt', e.target.value)}
 			/>
 		</div>
@@ -54,7 +56,7 @@ export const GeneralParamsForm = ({
 		<div className='space-y-2'>
 			<Label>Описание объекта</Label>
 			<Textarea
-				value={values.description}
+				value={values.description ?? ''}
 				onChange={e => onValueChange('description', e.target.value)}
 			/>
 		</div>

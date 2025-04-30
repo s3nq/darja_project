@@ -1,5 +1,11 @@
 'use client'
 
+import { ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+
 import { GeneralParamsForm } from '@/components/properties/CreatePropertyForm/FormSections/GeneralParamsForm'
 import { PrimaryFactorsForm } from '@/components/properties/CreatePropertyForm/FormSections/PrimaryFactorsForm'
 import { SecondaryFactorsForm } from '@/components/properties/CreatePropertyForm/FormSections/SecondaryFactorsForm'
@@ -10,14 +16,10 @@ import {
 	PriceDetailsType,
 } from '@/components/properties/CreatePropertyForm/PriceCalculator/PriceDetails'
 import { PropertyFormData } from '@/components/properties/CreatePropertyForm/types'
-import { Button } from '@/components/ui/button'
 import { OwnerList } from '@/components/ui/OwnerList'
 import { RealtorList } from '@/components/ui/RealtorList'
-import { ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+
 export default function AddPropertyPage({
 	initialValues,
 	propertyId,
@@ -52,9 +54,33 @@ export default function AddPropertyPage({
 		owners: [],
 	}
 
-	const [formData, setFormData] = useState<PropertyFormData>(
-		initialValues || defaultFormData
-	)
+	const [formData, setFormData] = useState<PropertyFormData>(defaultFormData)
+	const [isInitialized, setIsInitialized] = useState(false)
+
+	useEffect(() => {
+		if (initialValues && !isInitialized) {
+			console.log('✅ initialValues в AddPropertyPage:', initialValues)
+			setFormData({
+				...initialValues,
+				district: normalizeDistrict(initialValues.district),
+				renovation: normalizeRenovation(initialValues.renovation),
+				buildingType: normalizeBuildingType(initialValues.buildingType),
+				balconyType: normalizeBalconyType(initialValues.balconyType),
+				parkingType: normalizeParkingType(initialValues.parkingType),
+				rooms: normalizeRooms(initialValues.rooms),
+				elevatorCount: initialValues.elevatorCount?.toString() || '1',
+				metroDistance: initialValues.metroDistance?.toString() || '10',
+				ceilingHeight: initialValues.ceilingHeight?.toString() || '2.7',
+				kitchenArea: initialValues.kitchenArea?.toString() || '',
+				floor: initialValues.floor?.toString() || '',
+				totalFloors: initialValues.totalFloors?.toString() || '',
+				yearBuilt:
+					initialValues.yearBuilt?.toString() ||
+					new Date().getFullYear().toString(),
+			})
+			setIsInitialized(true)
+		}
+	}, [initialValues, isInitialized])
 
 	const normalizeDistrict = (v: string) => {
 		const map: Record<string, string> = {
@@ -75,7 +101,7 @@ export default function AddPropertyPage({
 			Евроремонт: 'Евроремонт',
 			'Дизайнерский ремонт': 'Дизайнерский ремонт',
 		}
-		return map[v] || ''
+		return map[v as keyof typeof map] || ''
 	}
 
 	const normalizeBuildingType = (v: string) => {
@@ -87,7 +113,7 @@ export default function AddPropertyPage({
 			Блочный: 'Блочный',
 			Деревянный: 'Деревянный',
 		}
-		return map[v] || ''
+		return map[v as keyof typeof map] || ''
 	}
 
 	const normalizeBalconyType = (v: string) => {
@@ -97,7 +123,7 @@ export default function AddPropertyPage({
 			Лоджия: 'Лоджия',
 			Несколько: 'Несколько',
 		}
-		return map[v] || ''
+		return map[v as keyof typeof map] || ''
 	}
 
 	const normalizeParkingType = (v: string) => {
@@ -107,32 +133,15 @@ export default function AddPropertyPage({
 			Крытая: 'Крытая',
 			Подземная: 'Подземная',
 		}
-		return map[v] || ''
+		return map[v as keyof typeof map] || ''
 	}
 
-	const normalizeRooms = (v: string) => {
+	function normalizeRooms(v: string) {
+		if (!v) return ''
 		if (v === '5+' || v === '5 и более') return '5+'
 		if (['0', '1', '2', '3', '4'].includes(v)) return v
-		return ''
+		return v
 	}
-
-	useEffect(() => {
-		if (initialValues) {
-			setFormData({
-				...initialValues,
-				district: normalizeDistrict(initialValues.district),
-				renovation: normalizeRenovation(initialValues.renovation),
-				buildingType: normalizeBuildingType(initialValues.buildingType),
-				balconyType: normalizeBalconyType(initialValues.balconyType),
-				parkingType: normalizeParkingType(initialValues.parkingType),
-				rooms: normalizeRooms(initialValues.rooms),
-				elevatorCount: initialValues.elevatorCount?.toString() ?? '',
-				metroDistance: initialValues.metroDistance?.toString() ?? '',
-				ceilingHeight: initialValues.ceilingHeight?.toString() ?? '',
-				kitchenArea: initialValues.kitchenArea?.toString() ?? '',
-			})
-		}
-	}, [initialValues])
 
 	const [priceDetails, setPriceDetails] = useState<PriceDetailsType | null>(
 		null
@@ -263,8 +272,12 @@ export default function AddPropertyPage({
 		}
 
 		const handleSubmit = async () => {
-			if (!priceDetails || !formData.area || !formData.district) {
-				toast.error('Заполните все основные поля и сделайте расчет!')
+			if (
+				isNaN(parseFloat(formData.area)) ||
+				isNaN(parseInt(formData.floor)) ||
+				isNaN(parseInt(formData.totalFloors))
+			) {
+				toast.error('Проверьте числовые поля (Этаж, Всего этажей, Площадь)')
 				return
 			}
 
@@ -321,7 +334,7 @@ export default function AddPropertyPage({
 		}
 
 		function getRenovationCoefficient(v: string, isRent = false) {
-			const map = {
+			const map: Record<string, number> = {
 				'Без отделки': isRent ? 0.85 : 0.8,
 				'Требует ремонта': isRent ? 0.95 : 0.9,
 				'Косметический ремонт': 1.0,
@@ -332,7 +345,7 @@ export default function AddPropertyPage({
 		}
 
 		function getBuildingTypeCoefficient(t: string, isRent = false) {
-			const map = {
+			const map: Record<string, number> = {
 				Кирпичный: isRent ? 1.02 : 1.05,
 				Монолитный: isRent ? 1.04 : 1.08,
 				'Монолитно-кирпичный': isRent ? 1.06 : 1.1,
@@ -370,8 +383,8 @@ export default function AddPropertyPage({
 				Открытая: 1,
 				Крытая: isRent ? 1.02 : 1.03,
 				Подземная: isRent ? 1.04 : 1.05,
-			}
-			return map[p] ?? 1
+			} as const
+			return p in map ? map[p as keyof typeof map] : 1
 		}
 
 		function getYearBuiltCoefficient(y: number, isRent = false) {
@@ -406,7 +419,6 @@ export default function AddPropertyPage({
 						<h1 className='text-2xl font-bold'>Добавить новый объект</h1>
 					</div>
 				</div>
-
 				{/* Переключатель Покупка / Аренда */}
 				<div className='flex gap-4 mb-6'>
 					<Button
@@ -422,7 +434,6 @@ export default function AddPropertyPage({
 						Аренда
 					</Button>
 				</div>
-
 				<div className='grid gap-6 md:grid-cols-2'>
 					{/* Форма слева */}
 
@@ -438,9 +449,14 @@ export default function AddPropertyPage({
 						/>
 						<PrimaryFactorsForm
 							values={formData}
-							onValueChange={handleValueChange}
-							onSliderChange={handleSliderChange}
+							onValueChange={(key, value) =>
+								setFormData(prev => ({ ...prev, [key]: value }))
+							}
+							onSliderChange={(key, value) =>
+								setFormData(prev => ({ ...prev, [key]: value[0].toString() }))
+							}
 						/>
+
 						<SecondaryFactorsForm
 							values={formData}
 							onValueChange={handleValueChange}
@@ -452,7 +468,6 @@ export default function AddPropertyPage({
 						/>
 					</div>
 
-					{/* Аналитика и расчёт справа */}
 					<div className='space-y-6'>
 						<CalculatorCard
 							calculatedPrice={
@@ -495,14 +510,4 @@ export default function AddPropertyPage({
 			</div>
 		)
 	}
-}
-const normalizeRenovation = (v: string) => {
-	const map = {
-		'Без отделки': 'Без отделки',
-		'Требует ремонта': 'Требует ремонта',
-		'Косметический ремонт': 'Косметический ремонт',
-		Евроремонт: 'Евроремонт',
-		'Дизайнерский ремонт': 'Дизайнерский ремонт',
-	}
-	return map[v] || ''
 }

@@ -26,7 +26,7 @@ export const SecondaryFactorsForm = ({
 		<div className='space-y-2'>
 			<Label>Тип дома</Label>
 			<Select
-				value={values.buildingType}
+				value={values.buildingType || ''}
 				onValueChange={v => onValueChange('buildingType', v)}
 			>
 				<SelectTrigger>
@@ -49,7 +49,7 @@ export const SecondaryFactorsForm = ({
 			<div className='space-y-2'>
 				<Label>Количество лифтов</Label>
 				<Select
-					value={values.elevatorCount}
+					value={values.elevatorCount ?? ''}
 					onValueChange={v => onValueChange('elevatorCount', v)}
 				>
 					<SelectTrigger>
@@ -67,7 +67,7 @@ export const SecondaryFactorsForm = ({
 
 			<div className='flex items-center space-x-2 pt-8'>
 				<Switch
-					checked={values.hasFreightElevator}
+					checked={!!values.hasFreightElevator}
 					onCheckedChange={checked =>
 						onSwitchChange('hasFreightElevator', checked)
 					}
