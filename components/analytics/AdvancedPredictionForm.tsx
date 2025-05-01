@@ -52,15 +52,6 @@ export function AdvancedPredictionForm() {
 					<option value='ВАО'>ВАО</option>
 					<option value='ЮАО'>ЮАО</option>
 				</select>
-
-				<select
-					value={sort}
-					onChange={e => setSort(e.target.value as 'asc' | 'desc')}
-					className='border px-2 py-1'
-				>
-					<option value='asc'>По росту</option>
-					<option value='desc'>По снижению</option>
-				</select>
 			</div>
 
 			{/* 🔹 ГРАФИК */}
