@@ -60,7 +60,9 @@ export default function AddPropertyPage({
 	useEffect(() => {
 		if (initialValues && !isInitialized) {
 			console.log('✅ initialValues в AddPropertyPage:', initialValues)
-			setFormData({
+
+			const normalized: PropertyFormData = {
+				...defaultFormData,
 				...initialValues,
 				district: normalizeDistrict(initialValues.district),
 				renovation: normalizeRenovation(initialValues.renovation),
@@ -77,7 +79,9 @@ export default function AddPropertyPage({
 				yearBuilt:
 					initialValues.yearBuilt?.toString() ||
 					new Date().getFullYear().toString(),
-			})
+			}
+
+			setFormData(normalized)
 			setIsInitialized(true)
 		}
 	}, [initialValues, isInitialized])
