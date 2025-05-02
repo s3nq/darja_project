@@ -1,10 +1,5 @@
 'use client'
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2, CheckCircle, Plus, Search, XCircle } from 'lucide-react'
-import Link from 'next/link'
-import { useState } from 'react'
-
 import { AdvancedPredictionForm } from '@/components/analytics/AdvancedPredictionForm'
 import { PriceChart } from '@/components/analytics/PriceChart'
 import { LogoutButton } from '@/components/LogoutButton'
@@ -20,15 +15,34 @@ import {
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Property } from '@/types/property'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+	BarChart,
+	Building2,
+	CheckCircle,
+	Loader2,
+	Plus,
+	Search,
+	XCircle,
+} from 'lucide-react'
+import Link from 'next/link'
+import { useState } from 'react'
+import {
+	Bar,
+	CartesianGrid,
+	BarChart as RechartsBarChart,
+	ResponsiveContainer,
+	Tooltip,
+	XAxis,
+	YAxis,
+} from 'recharts'
 
-// Запрос объектов
 async function fetchProperties() {
 	const res = await fetch('/api/properties')
 	if (!res.ok) throw new Error('Ошибка при загрузке объектов')
 	return res.json()
 }
 
-// Обновление статуса
 async function updatePropertyStatus({
 	id,
 	status,
@@ -41,8 +55,104 @@ async function updatePropertyStatus({
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ status }),
 	})
-	if (!res.ok) throw new Error('Ошибка обновления статуса')
+	if (!res.ok) {
+		const error = await res.json()
+		throw new Error(error.message || 'Ошибка обновления статуса')
+	}
 	return res.json()
+}
+
+const RealtorsAnalytics = () => {
+	const { data, isLoading, error } = useQuery({
+		queryKey: ['analytics-realtors'],
+		queryFn: async () => {
+			const res = await fetch('/api/analytics/realtors')
+
+			if (!res.ok) {
+				const errorData = await res.json()
+				throw new Error(errorData.error || 'Ошибка загрузки данных')
+			}
+
+			return res.json()
+		},
+	})
+
+	if (isLoading) {
+		return (
+			<div className='flex items-center justify-center p-8'>
+				<Loader2 className='h-8 w-8 animate-spin' />
+			</div>
+		)
+	}
+
+	if (error) {
+		return (
+			<div className='p-4 text-red-500'>
+				Ошибка: {error instanceof Error ? error.message : 'Неизвестная ошибка'}
+			</div>
+		)
+	}
+
+	return (
+		<div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+			<div className='rounded-lg border bg-white p-4 shadow-sm'>
+				<h2 className='mb-4 text-lg font-semibold'>Статистика по риэлторам</h2>
+				<div className='space-y-4'>
+					<div className='grid grid-cols-3 border-b pb-2 font-medium'>
+						<div>Риэлтор</div>
+						<div>Продажи</div>
+						<div>Сумма</div>
+					</div>
+					{data.map((agent: any) => (
+						<div
+							key={agent.agent}
+							className='grid grid-cols-3 border-b pb-2 last:border-b-0'
+						>
+							<div className='truncate'>{agent.agent}</div>
+							<div>{agent.salesCount}</div>
+							<div>
+								{new Intl.NumberFormat('ru-RU', {
+									style: 'currency',
+									currency: 'RUB',
+									maximumFractionDigits: 0,
+								}).format(agent.totalSales)}
+							</div>
+						</div>
+					))}
+				</div>
+			</div>
+
+			<div className='rounded-lg border bg-white p-4 shadow-sm'>
+				<h2 className='mb-4 text-lg font-semibold'>График продаж</h2>
+				<div className='h-64'>
+					<ResponsiveContainer width='100%' height='100%'>
+						<RechartsBarChart data={data}>
+							<CartesianGrid strokeDasharray='3 3' />
+							<XAxis
+								dataKey='agent'
+								angle={-45}
+								tick={{ fontSize: 12 }}
+								height={70}
+							/>
+							<YAxis />
+							<Tooltip
+								formatter={(value: number) => [
+									new Intl.NumberFormat('ru-RU').format(value),
+									'Количество продаж',
+								]}
+							/>
+							<Bar
+								dataKey='salesCount'
+								name='Продажи'
+								fill='#3b82f6'
+								radius={[4, 4, 0, 0]}
+							/>
+						</RechartsBarChart>
+					</ResponsiveContainer>
+				</div>
+			</div>
+		</div>
+	)
 }
 
 export default function Home() {
@@ -53,35 +163,41 @@ export default function Home() {
 	)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 
-	const openModal = (property: Property) => {
-		setSelectedProperty(property)
-		setIsModalOpen(true)
-	}
-
 	const {
 		data: properties,
-		isLoading,
-		isError,
-	} = useQuery({ queryKey: ['properties'], queryFn: fetchProperties })
+		isLoading: isLoadingProperties,
+		isError: isPropertiesError,
+	} = useQuery({
+		queryKey: ['properties'],
+		queryFn: fetchProperties,
+		staleTime: 1000 * 60 * 5,
+	})
 
 	const mutation = useMutation({
 		mutationFn: updatePropertyStatus,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['properties'] })
+			queryClient.invalidateQueries({ queryKey: ['analytics-realtors'] })
 		},
 	})
 
-	const filtered = properties?.filter((p: Property) => {
-		if (!searchQuery) return true
-		const q = searchQuery.toLowerCase()
+	const openModal = (property: Property) => {
+		setSelectedProperty(property)
+		setIsModalOpen(true)
+	}
+
+	const filteredProperties = properties?.filter((property: Property) => {
+		const searchLower = searchQuery.toLowerCase()
 		return (
-			p.address?.toLowerCase().includes(q) ||
-			p.district?.toLowerCase().includes(q)
+			property.address?.toLowerCase().includes(searchLower) ||
+			property.district?.toLowerCase().includes(searchLower)
 		)
 	})
 
-	const inProgress = filtered?.filter((p: Property) => p.status === 'в продаже')
-	const notInProgress = filtered?.filter(
+	const activeProperties = filteredProperties?.filter(
+		(p: Property) => p.status === 'в продаже'
+	)
+	const archivedProperties = filteredProperties?.filter(
 		(p: Property) => p.status !== 'в продаже'
 	)
 
@@ -93,7 +209,7 @@ export default function Home() {
 					<span className='text-lg font-semibold'>Недвижимость Москвы</span>
 				</div>
 				<div className='ml-auto flex items-center gap-4'>
-					<form onSubmit={e => e.preventDefault()} className='relative'>
+					<form className='relative' onSubmit={e => e.preventDefault()}>
 						<Search className='absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground' />
 						<Input
 							type='search'
@@ -115,7 +231,7 @@ export default function Home() {
 
 			<main className='flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8'>
 				<Tabs defaultValue='properties'>
-					<TabsList>
+					<TabsList className='grid w-full grid-cols-3'>
 						<TabsTrigger value='properties'>Объекты</TabsTrigger>
 						<TabsTrigger value='analytics'>Аналитика</TabsTrigger>
 						<TabsTrigger value='ai-predictions'>Прогноз</TabsTrigger>
@@ -127,25 +243,26 @@ export default function Home() {
 								<CardTitle>Объекты в работе</CardTitle>
 							</CardHeader>
 							<CardContent className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-								{inProgress?.map((property: Property) => (
+								{activeProperties?.map((property: Property) => (
 									<Card
 										key={property.id}
-										className='bg-green-50 border cursor-pointer'
+										className='cursor-pointer border bg-green-50'
 										onClick={() => openModal(property)}
 									>
 										<CardHeader>
 											<CardTitle className='flex items-center gap-2'>
-												<CheckCircle className='text-green-600 w-5 h-5' />
+												<CheckCircle className='h-5 w-5 text-green-600' />
 												{property.address}
 											</CardTitle>
 											<CardDescription>{property.district}</CardDescription>
 										</CardHeader>
 										<CardContent className='space-y-1'>
-											<p>Цена: {property.price} ₽</p>
+											<p>Цена: {property.price?.toLocaleString('ru-RU')} ₽</p>
 											<p>Площадь: {property.area} м²</p>
 											<Button
 												variant='destructive'
 												size='sm'
+												className='mt-2'
 												onClick={e => {
 													e.stopPropagation()
 													mutation.mutate({
@@ -167,25 +284,26 @@ export default function Home() {
 								<CardTitle>Архив объектов</CardTitle>
 							</CardHeader>
 							<CardContent className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-								{notInProgress?.map((property: Property) => (
+								{archivedProperties?.map((property: Property) => (
 									<Card
 										key={property.id}
-										className='bg-gray-50 border cursor-pointer'
+										className='cursor-pointer border bg-gray-50'
 										onClick={() => openModal(property)}
 									>
 										<CardHeader>
 											<CardTitle className='flex items-center gap-2'>
-												<XCircle className='text-gray-400 w-5 h-5' />
+												<XCircle className='h-5 w-5 text-gray-400' />
 												{property.address}
 											</CardTitle>
 											<CardDescription>{property.district}</CardDescription>
 										</CardHeader>
 										<CardContent className='space-y-1'>
-											<p>Цена: {property.price} ₽</p>
+											<p>Цена: {property.price?.toLocaleString('ru-RU')} ₽</p>
 											<p>Площадь: {property.area} м²</p>
 											<Button
 												variant='outline'
 												size='sm'
+												className='mt-2'
 												onClick={e => {
 													e.stopPropagation()
 													mutation.mutate({
@@ -203,12 +321,24 @@ export default function Home() {
 						</Card>
 					</TabsContent>
 
-					<TabsContent value='analytics'>
-						<Card className='col-span-2'>
+					<TabsContent value='analytics' className='space-y-6'>
+						<Card>
+							<CardHeader>
+								<CardTitle className='flex items-center gap-2'>
+									<BarChart className='h-5 w-5' />
+									Аналитика риэлторов
+								</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<RealtorsAnalytics />
+							</CardContent>
+						</Card>{' '}
+						{/* Added closing Card tag */}
+						<Card>
 							<CardHeader>
 								<CardTitle>Динамика цен</CardTitle>
 							</CardHeader>
-							<CardContent>
+							<CardContent className='h-96'>
 								<PriceChart />
 							</CardContent>
 						</Card>
@@ -217,10 +347,9 @@ export default function Home() {
 					<TabsContent value='ai-predictions'>
 						<Card>
 							<CardHeader>
-								<CardTitle>Прогноз на основе трендов</CardTitle>
+								<CardTitle>Прогноз стоимости</CardTitle>
 								<CardDescription>
-									Прогноз стоимости с учётом динамики района и корректировкой
-									модели
+									Прогнозирование цен с учетом рыночных тенденций
 								</CardDescription>
 							</CardHeader>
 							<CardContent>

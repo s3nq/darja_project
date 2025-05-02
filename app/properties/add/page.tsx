@@ -88,13 +88,27 @@ export default function AddPropertyPage({
 
 	const normalizeDistrict = (v: string) => {
 		const map: Record<string, string> = {
-			ЦАО: 'Центральный район',
-			САО: 'Северный район',
-			ЮАО: 'Южный район',
-			ВАО: 'Восточный район',
-			ЗАО: 'Западный район',
+			ЦАО: 'ЦАО',
+			САО: 'САО',
+			ЮАО: 'ЮАО',
+			ВАО: 'ВАО',
+			ЗАО: 'ЗАО',
 		}
 		return map[v] || v
+	}
+	function shortDistrict(full: string): string {
+		const map: Record<string, string> = {
+			'Центральный район': 'ЦАО',
+			'Северный район': 'САО',
+			'Южный район': 'ЮАО',
+			'Восточный район': 'ВАО',
+			'Западный район': 'ЗАО',
+			'Юго-Западный район': 'ЮЗАО',
+			'Северо-Восточный район': 'СВАО',
+			'Юго-Восточный район': 'ЮВАО',
+			'Северо-Западный район': 'СЗАО',
+		}
+		return map[full] || full
 	}
 
 	const normalizeRenovation = (v: string) => {
@@ -295,6 +309,7 @@ export default function AddPropertyPage({
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({
 							...formData,
+							district: shortDistrict(formData.district),
 							area: parseFloat(formData.area),
 							price:
 								formData.purpose === 'rent'

@@ -13,6 +13,7 @@ import { Property } from '@/types/property'
 import { ArrowDownToLine, Download, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 interface PropertyModalProps {
 	property: Property | null
@@ -28,19 +29,42 @@ export function PropertyModal({
 	const [uploadedDocs, setUploadedDocs] = useState<string[]>([])
 	const dropRef = useRef<HTMLDivElement>(null)
 	const router = useRouter()
+	const [agentsStats, setAgentsStats] = useState<Record<string, number>>({})
 
 	useEffect(() => {
-		if (!property) return
-		const fetchUploaded = async () => {
-			const res = await fetch(`/api/properties/${property.id}/uploaded`)
-			if (res.ok) {
-				const files: string[] = await res.json()
-				setUploadedDocs(files)
+		const fetchAgentStats = async () => {
+			try {
+				if (!property?.agents || property.agents.length === 0) {
+					setAgentsStats({})
+					return
+				}
+
+				const response = await fetch('/api/agents/stats', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						agents: Array.isArray(property.agents)
+							? property.agents
+							: JSON.parse(property.agents),
+					}),
+				})
+
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`)
+				}
+
+				const data = await response.json()
+				setAgentsStats(data)
+			} catch (error) {
+				console.error('Failed to fetch agent stats:', error)
+				setAgentsStats({})
 			}
 		}
-		fetchUploaded()
-	}, [property])
 
+		fetchAgentStats()
+	}, [property?.agents])
 	const handleUpload = async (file: File, docType: string) => {
 		if (!file || !property?.id) return
 		const formData = new FormData()
@@ -57,20 +81,50 @@ export function PropertyModal({
 		}
 	}
 
-	const handleFileSelect = () => {
-		const input = document.createElement('input')
-		input.type = 'file'
-		input.accept = 'application/pdf'
-		input.onchange = e => {
-			const file = (e.target as HTMLInputElement)?.files?.[0]
-			if (file) {
-				const name = file.name.replace(/\.pdf$/, '')
-				handleUpload(file, name)
-			}
+	const handleMarkAsSold = async () => {
+		if (!property?.id) {
+			toast.error('Не выбран объект недвижимости')
+			return
 		}
-		input.click()
-	}
 
+		try {
+			const res = await fetch(`/api/properties/${property.id}/status`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ status: 'sold' }),
+			})
+
+			if (res.status === 204) {
+				router.refresh()
+				onOpenChange(false)
+				toast.success('Статус успешно обновлен!')
+				return
+			}
+
+			const errorText = await res.text()
+			const errorData = errorText ? JSON.parse(errorText) : null
+
+			if (!res.ok) {
+				throw new Error(
+					errorData?.error ||
+						errorData?.message ||
+						'Неизвестная ошибка обновления статуса'
+				)
+			}
+
+			const successData = errorText ? JSON.parse(errorText) : null
+			router.refresh()
+			onOpenChange(false)
+			toast.success(successData?.message || 'Статус успешно обновлен!')
+		} catch (error) {
+			console.error('Ошибка обновления статуса:', error)
+			toast.error(
+				error instanceof Error
+					? error.message
+					: 'Произошла непредвиденная ошибка'
+			)
+		}
+	}
 	const handleDownloadAll = () => {
 		if (!property?.id) return
 		window.open(`/api/properties/${property.id}/download-all`, '_blank')
@@ -120,6 +174,12 @@ export function PropertyModal({
 		'Договор о передачи собственности': 'sobstv.pdf',
 	}
 
+	function handleFileSelect(
+		event: MouseEvent<HTMLDivElement, MouseEvent>
+	): void {
+		throw new Error('Function not implemented.')
+	}
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className='max-w-3xl max-h-[90vh] overflow-hidden'>
@@ -164,7 +224,6 @@ export function PropertyModal({
 								</p>
 							)}
 						</div>
-
 						{/* Характеристики */}
 						<div>
 							<h3 className='text-base font-semibold mb-2'>
@@ -221,31 +280,54 @@ export function PropertyModal({
 								</div>
 							</div>
 						)}
-
 						{/* Риэлторы */}
 						{Array.isArray(property.agents) && property.agents.length > 0 && (
 							<div className='space-y-2'>
-								<h3 className='text-base font-semibold mb-2'>👩‍💼 Риэлторы</h3>
+								<h3 className='text-base font-semibold mb-2'>👩💼 Риэлторы</h3>
 								<ul className='grid gap-2 list-none'>
 									{property.agents.map((agent, idx) => (
 										<li
 											key={idx}
-											className='border rounded-md px-3 py-2 bg-gray-50 dark:bg-muted text-sm'
+											className='border rounded-md px-3 py-2 bg-gray-50 dark:bg-muted text-sm flex justify-between items-center'
 										>
-											{agent}
+											<span>{agent}</span>
+											<span className='text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full'>
+												Продано: {agentsStats[agent] ?? 0}
+											</span>
 										</li>
 									))}
 								</ul>
 							</div>
 						)}
-
 						<Button
 							variant='outline'
 							onClick={() => router.push(`/properties/${property.id}/edit`)}
 						>
 							Редактировать
 						</Button>
-
+						<div className='flex gap-2 mt-4'>
+							<Button
+								variant={property.status === 'sold' ? 'default' : 'outline'}
+								disabled={property.status === 'sold'}
+								onClick={handleMarkAsSold}
+							>
+								{property.status === 'sold'
+									? '✓ Продан'
+									: 'Пометить как проданный'}
+							</Button>
+						</div>
+						<p className='col-span-2'>
+							<b>Статус:</b>
+							<span
+								className={
+									property.status === 'sold'
+										? 'text-green-600 font-semibold'
+										: 'text-orange-600'
+								}
+							>
+								{property.status === 'sold' ? 'Продан' : 'В продаже'}
+							</span>
+						</p>
 						{/* документы */}
 						<div>
 							<div className='flex justify-between items-center mb-2'>

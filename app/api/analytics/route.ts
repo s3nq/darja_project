@@ -1,5 +1,3 @@
-// app/api/analytics/route.ts
-
 import { NextResponse } from 'next/server'
 import { Pool } from 'pg'
 
@@ -10,23 +8,26 @@ const pool = new Pool({
 export async function GET() {
 	try {
 		const result = await pool.query(`
-      SELECT district, ROUND(AVG(price / NULLIF(area, 0))) AS average_price_per_m2
-      FROM properties
-      WHERE area > 0
-      GROUP BY district
-      ORDER BY average_price_per_m2 DESC;
+      SELECT 
+        agent AS "agent",
+        COUNT(*) FILTER (WHERE status = 'sold') AS "salesCount",
+        COALESCE(SUM(price) FILTER (WHERE status = 'sold'), 0) AS "totalSales"
+      FROM properties, jsonb_array_elements_text(agents) AS agent
+      GROUP BY agent
+      ORDER BY "salesCount" DESC;
     `)
 
-		const analyticsData = result.rows
+		const analyticsData = result.rows.map(row => ({
+			agent: row.agent,
+			salesCount: Number(row.salesCount),
+			totalSales: Number(row.totalSales),
+		}))
 
-		const labels = analyticsData.map(row => row.district)
-		const data = analyticsData.map(row => Number(row.average_price_per_m2))
-
-		return NextResponse.json({ labels, data })
+		return NextResponse.json(analyticsData)
 	} catch (error) {
-		console.error('Ошибка при извлечении данных для аналитики:', error)
+		console.error('Ошибка аналитики:', error)
 		return NextResponse.json(
-			{ error: 'Ошибка при извлечении данных для аналитики' },
+			{ error: 'Ошибка получения аналитики' },
 			{ status: 500 }
 		)
 	}
