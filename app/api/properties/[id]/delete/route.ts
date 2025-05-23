@@ -4,10 +4,10 @@ import { join } from 'path'
 
 export async function DELETE(
 	req: NextRequest,
-	{ params }: { params: { id: string } }
+	context: { params: { id: string } }
 ) {
 	try {
-		const id = params.id
+		const id = context.params.id
 		const { searchParams } = new URL(req.url)
 		const file = searchParams.get('file')
 

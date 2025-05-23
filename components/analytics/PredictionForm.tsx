@@ -27,7 +27,6 @@ export function PredictionForm() {
 				>
 					<option value=''>Все районы</option>
 					<option value='САО'>САО</option>
-					<option value='ЮЗАО'>ЮЗАО</option>
 					<option value='ЗАО'>ЗАО</option>
 					<option value='ЦАО'>ЦАО</option>
 					<option value='ВАО'>ВАО</option>

@@ -30,6 +30,7 @@ export function PropertyModal({
 	const dropRef = useRef<HTMLDivElement>(null)
 	const router = useRouter()
 	const [agentsStats, setAgentsStats] = useState<Record<string, number>>({})
+	const fileInputRef = useRef<HTMLInputElement>(null)
 
 	useEffect(() => {
 		const fetchAgentStats = async () => {
@@ -174,10 +175,10 @@ export function PropertyModal({
 		'Договор о передачи собственности': 'sobstv.pdf',
 	}
 
-	function handleFileSelect(
-		event: MouseEvent<HTMLDivElement, MouseEvent>
-	): void {
-		throw new Error('Function not implemented.')
+	function handleFileSelect() {
+		if (fileInputRef.current) {
+			fileInputRef.current.click()
+		}
 	}
 
 	return (
@@ -216,7 +217,7 @@ export function PropertyModal({
 							</p>
 							<p>
 								<b>Цель:</b>{' '}
-								{property.purpose === 'rent' ? 'Аренда' : 'Покупка'}
+								{property.purpose === 'rent' ? 'Аренда' : 'Продажа'}
 							</p>
 							{property.description && (
 								<p className='col-span-2'>
@@ -368,6 +369,19 @@ export function PropertyModal({
 								onClick={handleFileSelect}
 								className='cursor-pointer border border-dashed border-gray-300 p-4 rounded-md mb-4 text-center text-muted-foreground hover:bg-gray-50 transition'
 							>
+								<input
+									type='file'
+									accept='application/pdf'
+									ref={fileInputRef}
+									style={{ display: 'none' }}
+									onChange={e => {
+										const file = e.target.files?.[0]
+										if (file && file.type === 'application/pdf') {
+											const docType = prompt('Введите название документа')
+											if (docType) handleUpload(file, docType)
+										}
+									}}
+								/>
 								Нажмите или перетащите PDF-документ сюда
 							</div>
 
@@ -375,11 +389,22 @@ export function PropertyModal({
 							<div className='space-y-2'>
 								{uploadedDocs.map(file => (
 									<div key={file} className='flex items-center justify-between'>
-										<span>{file}</span>
+										<div className='flex items-center gap-3 border rounded-md p-2 bg-white dark:bg-muted text-sm'>
+											<span>{file}</span>
+											<Button
+												variant='ghost'
+												size='icon'
+												onClick={() => handleDownload(file)}
+												aria-label='Скачать документ'
+											>
+												<Download className='w-4 h-4 ml-2' />
+											</Button>
+										</div>
 										<Button
 											variant='ghost'
 											size='icon'
 											onClick={() => handleDelete(file)}
+											aria-label='Удалить документ'
 										>
 											<Trash2 className='w-4 h-4 text-red-500' />
 										</Button>

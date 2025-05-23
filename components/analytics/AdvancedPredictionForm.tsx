@@ -46,7 +46,6 @@ export function AdvancedPredictionForm() {
 				>
 					<option value=''>Все районы</option>
 					<option value='САО'>САО</option>
-					<option value='ЮЗАО'>ЮЗАО</option>
 					<option value='ЗАО'>ЗАО</option>
 					<option value='ЦАО'>ЦАО</option>
 					<option value='ВАО'>ВАО</option>
@@ -56,54 +55,59 @@ export function AdvancedPredictionForm() {
 
 			{/* 🔹 ГРАФИК */}
 			{predictions.length > 0 && (
-				<Bar
-					data={{
-						labels,
-						datasets: [
-							{
-								label: 'Текущая цена за м²',
-								data: currentPrices,
-								backgroundColor: 'rgba(75, 192, 192, 0.5)',
-							},
-							{
-								label: 'Прогноз (за м²)',
-								data: predictedPrices,
-								backgroundColor: 'rgba(255, 99, 132, 0.5)',
-							},
-							{
-								label: 'Интервал доверия',
-								data: confidence,
-								backgroundColor: 'rgba(255, 205, 86, 0.4)',
-								type: 'bar',
-							},
-						],
-					}}
-					options={{
-						responsive: true,
-						plugins: {
-							legend: { position: 'top' },
-							tooltip: {
-								callbacks: {
-									label: ctx => {
-										const value = ctx.raw.toLocaleString()
-										if (ctx.dataset.label === 'Интервал доверия') {
-											return `${ctx.dataset.label}: ±${value} ₽`
-										}
-										return `${ctx.dataset.label}: ${value} ₽`
+				<div style={{ width: '100%', height: '400px' }}>
+					<Bar
+						data={{
+							labels,
+							datasets: [
+								{
+									label: 'Текущая цена за м²',
+									data: currentPrices,
+									backgroundColor: 'rgba(75, 192, 192, 0.5)',
+								},
+								{
+									label: 'Прогноз (за м²)',
+									data: predictedPrices,
+									backgroundColor: 'rgba(255, 99, 132, 0.5)',
+								},
+								{
+									label: 'Интервал доверия',
+									data: confidence,
+									backgroundColor: 'rgba(255, 205, 86, 0.4)',
+									type: 'bar',
+								},
+							],
+						}}
+						options={{
+							responsive: true,
+							plugins: {
+								legend: { position: 'top' },
+								tooltip: {
+									callbacks: {
+										label: ctx => {
+											const value = (ctx.raw as number).toLocaleString()
+											if (ctx.dataset.label === 'Интервал доверия') {
+												return `${ctx.dataset.label}: ±${value} ₽`
+											}
+											return `${ctx.dataset.label}: ${value} ₽`
+										},
 									},
 								},
 							},
-						},
-						scales: {
-							y: {
-								beginAtZero: false,
-								ticks: {
-									callback: (v: number) => `${v.toLocaleString()} ₽`,
+							scales: {
+								y: {
+									beginAtZero: false,
+									ticks: {
+										callback: (tickValue: string | number) =>
+											typeof tickValue === 'number'
+												? `${tickValue.toLocaleString()} ₽`
+												: `${tickValue} ₽`,
+									},
 								},
 							},
-						},
-					}}
-				/>
+						}}
+					/>
+				</div>
 			)}
 
 			{/* 🔹 ТАБЛИЦА */}

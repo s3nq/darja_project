@@ -194,9 +194,9 @@ export default function AddPropertyPage({
 			}
 
 			try {
-				const basePrice = 231000
 				const area = parseFloat(formData.area) || 50
 				const isRent = formData.purpose === 'rent'
+				const basePrice = isRent ? 1700 : 231000
 
 				const totalCoef = isRent
 					? getDistrictCoefficient(formData.district, true) *
@@ -238,7 +238,7 @@ export default function AddPropertyPage({
 
 				const pricePerM2 = basePrice * totalCoef
 				const finalPrice = pricePerM2 * area
-				const rentMonth = Math.round(finalPrice * 0.0045)
+				const rentMonth = Math.round(pricePerM2 * area)
 				const rentDay = Math.round(rentMonth / 30)
 
 				setPriceDetails({
@@ -438,13 +438,13 @@ export default function AddPropertyPage({
 						<h1 className='text-2xl font-bold'>Добавить новый объект</h1>
 					</div>
 				</div>
-				{/* Переключатель Покупка / Аренда */}
+				{/* Переключатель Продажа / Аренда */}
 				<div className='flex gap-4 mb-6'>
 					<Button
 						variant={formData.purpose === 'buy' ? 'default' : 'outline'}
 						onClick={() => handleValueChange('purpose', 'buy')}
 					>
-						Покупка
+						Продажа
 					</Button>
 					<Button
 						variant={formData.purpose === 'rent' ? 'default' : 'outline'}

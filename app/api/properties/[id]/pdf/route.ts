@@ -53,7 +53,7 @@ export async function GET(
 	drawText('Балкон', property.balcony_type || 'не указано')
 	drawText('Парковка', property.parking_type || 'не указано')
 	drawText('Год постройки', property.year_built || 'не указан')
-	drawText('Цель', property.purpose === 'rent' ? 'Аренда' : 'Покупка')
+	drawText('Цель', property.purpose === 'rent' ? 'Аренда' : 'Продажа')
 
 	if (property.description) {
 		drawText('Описание', property.description)
@@ -61,7 +61,7 @@ export async function GET(
 
 	const pdfBytes = await pdfDoc.save()
 
-	return new NextResponse(pdfBytes, {
+	return new NextResponse(Buffer.from(pdfBytes), {
 		headers: {
 			'Content-Type': 'application/pdf',
 			'Content-Disposition': `attachment; filename="property_${id}.pdf"`,

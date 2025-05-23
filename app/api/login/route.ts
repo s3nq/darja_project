@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 		const res = NextResponse.json({ message: 'ok' })
 		res.headers.set(
 			'Set-Cookie',
-			serialize('auth', 'true', { path: '/', maxAge: 60 * 60 * 24 }) // 1 день
+			serialize('auth', 'true', { path: '/', maxAge: 60 * 60 * 24 }) 
 		)
 		return res
 	}

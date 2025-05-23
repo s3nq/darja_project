@@ -125,15 +125,19 @@ const RealtorsAnalytics = () => {
 			<div className='rounded-lg border bg-white p-4 shadow-sm'>
 				<h2 className='mb-4 text-lg font-semibold'>График продаж</h2>
 				<div className='h-64'>
-					<ResponsiveContainer width='100%' height='100%'>
+					<ResponsiveContainer width='100%' height={700}>
 						<RechartsBarChart data={data}>
 							<CartesianGrid strokeDasharray='3 3' />
 							<XAxis
 								dataKey='agent'
 								angle={-45}
-								tick={{ fontSize: 12 }}
-								height={70}
+								tick={{ fontSize: 10, fill: '#ffffff' }}
+								height={120}
+								tickFormatter={value =>
+									value.length > 15 ? `${value.slice(0, 12)}...` : value
+								}
 							/>
+
 							<YAxis />
 							<Tooltip
 								formatter={(value: number) => [

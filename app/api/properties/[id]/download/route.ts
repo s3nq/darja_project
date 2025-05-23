@@ -27,7 +27,7 @@ export async function GET(
 		if (templateMap[type]) {
 			filePath = join(process.cwd(), 'public', 'templates', templateMap[type])
 		} else {
-			filePath = join(process.cwd(), 'public', 'uploads', id, `${type}.pdf`)
+			filePath = join(process.cwd(), 'public', 'uploads', id, type)
 		}
 
 		if (!existsSync(filePath)) {

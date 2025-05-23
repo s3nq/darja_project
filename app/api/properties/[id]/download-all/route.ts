@@ -1,7 +1,8 @@
-import { existsSync, readFileSync } from 'fs'
+import { existsSync, readdirSync, readFileSync } from 'fs'
 import { NextRequest, NextResponse } from 'next/server'
 import { join } from 'path'
 import { PDFDocument } from 'pdf-lib'
+export const runtime = 'nodejs'
 
 export async function GET(
 	_request: NextRequest,

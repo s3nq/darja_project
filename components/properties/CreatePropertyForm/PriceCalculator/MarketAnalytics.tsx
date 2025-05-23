@@ -64,9 +64,8 @@ export function MarketAnalytics({
 	return (
 		<div className='border rounded-lg p-4'>
 			<Tabs defaultValue='comparison'>
-				<TabsList className='w-full grid grid-cols-2 mb-4'>
+				<TabsList className='w-full grid grid-cols-1 mb-4'>
 					<TabsTrigger value='comparison'>Сравнение районов</TabsTrigger>
-					<TabsTrigger value='history'>Динамика по району</TabsTrigger>
 				</TabsList>
 
 				{/* СРАВНЕНИЕ */}
@@ -125,7 +124,6 @@ export function MarketAnalytics({
 						>
 							<option>ЦАО</option>
 							<option>САО</option>
-							<option>ЮЗАО</option>
 							<option>ЗАО</option>
 							<option>ВАО</option>
 							<option>ЮАО</option>

@@ -55,7 +55,9 @@ export function RealtorList({ values = [], onChange }: RealtorListProps) {
 					placeholder='ФИО риэлтора'
 					className='flex-1'
 				/>
-				<Button onClick={addRealtor}>Добавить</Button>
+				<Button onClick={addRealtor} disabled={!input}>
+					Добавить
+				</Button>
 			</div>
 		</div>
 	)
